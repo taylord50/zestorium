@@ -23,8 +23,8 @@ const DEFAULT_PARAMS = {
   damping: 0.985,
   tension: 0.02,
   spread: 0.25,
-  tiltTarget: 200,
-  tiltPull: 0.03,
+  tiltTarget: 380,
+  tiltSpeed: 0.04,
   dragDisturb: 0.12,
 };
 
@@ -93,11 +93,13 @@ function LiquidBottle({ value, onChange, params = DEFAULT_PARAMS }) {
     const waves = wavesRef.current;
     const p = paramsRef.current;
     // Target equilibrium is a straight tilted line (level with ground)
+    // Use lerp on heights directly so tiltTarget always determines final position
+    // and tiltSpeed only controls how quickly it gets there
     for (let i = 0; i < NUM_POINTS; i++) {
       const pos = (i / (NUM_POINTS - 1)) - 0.5; // -0.5 to 0.5
       const targetHeight = tiltX * pos * p.tiltTarget;
-      const diff = targetHeight - waves.heights[i];
-      waves.velocities[i] += diff * p.tiltPull;
+      // Lerp the height toward target (independent of velocity/damping)
+      waves.heights[i] += (targetHeight - waves.heights[i]) * p.tiltSpeed;
     }
   }, []);
 

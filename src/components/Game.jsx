@@ -101,7 +101,7 @@ function Game({ onComplete }) {
           { key: 'tension', min: 0.005, max: 0.1, step: 0.005, label: 'Tension' },
           { key: 'spread', min: 0.05, max: 0.5, step: 0.05, label: 'Spread' },
           { key: 'tiltTarget', min: 50, max: 500, step: 10, label: 'Tilt Target' },
-          { key: 'tiltPull', min: 0.005, max: 0.2, step: 0.005, label: 'Tilt Pull' },
+          { key: 'tiltSpeed', min: 0.005, max: 0.2, step: 0.005, label: 'Tilt Speed' },
           { key: 'dragDisturb', min: 0.02, max: 0.5, step: 0.02, label: 'Drag Disturb' },
         ].map(({ key, min, max, step, label }) => (
           <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
