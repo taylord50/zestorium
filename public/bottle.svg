@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 500" width="200" height="500">
+  <!-- Inner clip path (where liquid lives) -->
+  <defs>
+    <clipPath id="bottle-interior">
+      <path d="
+        M 88,72
+        L 88,100
+        C 88,110 75,130 62,155
+        C 52,175 48,190 48,200
+        L 48,430
+        C 48,445 55,452 70,455
+        L 130,455
+        C 145,452 152,445 152,430
+        L 152,200
+        C 152,190 148,175 138,155
+        C 125,130 112,110 112,100
+        L 112,72
+        Z
+      "/>
+    </clipPath>
+  </defs>
+
+  <!-- Cork -->
+  <rect x="82" y="28" width="36" height="32" rx="4" fill="#C4A265"/>
+  <rect x="82" y="28" width="36" height="8" rx="3" fill="#B8935A"/>
+  <rect x="84" y="38" width="32" height="3" rx="1" fill="#A8834A" opacity="0.5"/>
+  <rect x="84" y="44" width="32" height="2" rx="1" fill="#A8834A" opacity="0.3"/>
+  <!-- Cork rim -->
+  <ellipse cx="100" cy="60" rx="16" ry="4" fill="none" stroke="#2A2A2A" stroke-width="3"/>
+
+  <!-- Bottle outline - hand-drawn style with thick strokes -->
+  <path d="
+    M 87,62
+    L 86,100
+    C 85,112 72,132 60,158
+    C 48,180 44,195 44,208
+    L 43,432
+    C 43,448 52,458 68,460
+    L 132,460
+    C 148,458 157,448 157,432
+    L 156,208
+    C 156,195 152,180 140,158
+    C 128,132 115,112 114,100
+    L 113,62
+  " fill="none" stroke="#2A2A2A" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Neck ring -->
+  <path d="M 84,62 L 84,58 L 116,58 L 116,62" fill="none" stroke="#2A2A2A" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- Bottom curve (visible glass base) -->
+  <path d="
+    M 52,440
+    C 55,455 65,462 100,463
+    C 135,462 145,455 148,440
+  " fill="none" stroke="#2A2A2A" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+
+  <!-- Glass inner base ellipse -->
+  <ellipse cx="100" cy="448" rx="42" ry="8" fill="none" stroke="#2A2A2A" stroke-width="2" opacity="0.3"/>
+
+  <!-- Glass highlight strokes (left side) -->
+  <path d="M 58,180 C 56,220 55,280 57,340" fill="none" stroke="#2A2A2A" stroke-width="2" stroke-linecap="round" opacity="0.15"/>
+  <path d="M 64,175 C 62,230 61,300 63,380" fill="none" stroke="#2A2A2A" stroke-width="1.5" stroke-linecap="round" opacity="0.12"/>
+
+  <!-- Glass highlight strokes (right side) -->
+  <path d="M 140,190 C 142,230 143,280 141,330" fill="none" stroke="#2A2A2A" stroke-width="1.5" stroke-linecap="round" opacity="0.1"/>
+
+  <!-- Glass highlight dashes -->
+  <path d="M 70,200 L 68,230" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
+  <path d="M 72,250 L 70,270" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
+  <path d="M 130,220 L 131,235" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" opacity="0.35"/>
+  <path d="M 68,380 L 67,400" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
+
+  <!-- Shoulder highlight -->
+  <path d="M 78,130 C 74,145 70,160 68,175" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" opacity="0.4"/>
+</svg>

@@ -1137,14 +1137,24 @@ input[type="range"]::-moz-range-thumb {
 
 .liquid-bottle-wrapper {
   position: relative;
-  max-height: 50vh;
+  width: 160px;
+  max-height: 55vh;
+  aspect-ratio: 200 / 500;
 }
 
-.liquid-bottle-canvas {
-  display: block;
-  max-height: 45vh;
-  width: auto;
-  height: auto;
+.bottle-liquid-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.bottle-svg-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 
 .bottle-amount-text {
