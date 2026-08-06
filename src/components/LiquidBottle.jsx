@@ -83,15 +83,24 @@ function LiquidBottle({ value, onChange }) {
     tiltX = Math.max(-1, Math.min(1, tiltX));
 
     const waves = wavesRef.current;
-    for (let i = 0; i < NUM_POINTS; i++) {
-      const pos = (i / (NUM_POINTS - 1)) - 0.5;
-      waves.velocities[i] += tiltX * pos * 0.8;
+    // Apply sideways gravity: push liquid toward the low side
+    // This creates natural accumulation rather than rigid rotation
+    for (let i = 1; i < NUM_POINTS - 1; i++) {
+      // Transfer liquid from high side to low side via velocity
+      // tiltX > 0 means right side is low, liquid should flow right
+      // We add velocity to move heights from left to right (or vice versa)
+      const flowForce = tiltX * 3.0;
+      waves.velocities[i] += flowForce * (heights[i - 1] - heights[i + 1]) * 0.01;
+      // Direct push: liquid on the "uphill" side gets pushed down
+      waves.velocities[i] += flowForce * 0.5;
     }
-    for (let i = 0; i < NUM_POINTS; i++) {
-      const pos = (i / (NUM_POINTS - 1)) - 0.5;
-      const targetOffset = tiltX * pos * 180;
-      const diff = targetOffset - waves.heights[i];
-      waves.velocities[i] += diff * 0.15;
+    // Boundary: accumulate on the low side wall
+    if (tiltX > 0) {
+      waves.velocities[NUM_POINTS - 1] += tiltX * 2.0;
+      waves.velocities[0] -= tiltX * 2.0;
+    } else {
+      waves.velocities[0] += Math.abs(tiltX) * 2.0;
+      waves.velocities[NUM_POINTS - 1] -= Math.abs(tiltX) * 2.0;
     }
   }, []);
 
