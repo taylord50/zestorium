@@ -214,6 +214,13 @@ function LiquidBottle({ value, onChange }) {
         }
       }
 
+      // Volume conservation: normalize heights so they sum to zero
+      // This prevents the "bouncing up and down" effect
+      const avgHeight = heights.reduce((a, b) => a + b, 0) / NUM_POINTS;
+      for (let i = 0; i < NUM_POINTS; i++) {
+        heights[i] -= avgHeight;
+      }
+
       // Render
       ctx.clearRect(0, 0, canvasW * scale, canvasH * scale);
       ctx.save();
