@@ -63,12 +63,28 @@ function LiquidBottle({ value, onChange }) {
 
   // Gyroscope/accelerometer for phone sloshing
   const handleOrientation = useCallback((e) => {
-    if (e.gamma === null) return;
-    const tilt = e.gamma / 90;
+    if (e.gamma === null || e.beta === null) return;
+    // gamma: left/right tilt (-90 to 90)
+    // beta: forward/back tilt (-180 to 180)
+    // We use gamma for left-right liquid movement
+    // and beta to shift the "resting level" (tilt forward = liquid toward screen)
+    const tiltX = e.gamma / 90; // -1 to 1, left/right
+
     const waves = wavesRef.current;
+    // Apply gravity-like force: liquid moves toward the low side
     for (let i = 0; i < NUM_POINTS; i++) {
-      const pos = i / (NUM_POINTS - 1);
-      waves.velocities[i] += tilt * (pos - 0.5) * 0.4;
+      const pos = (i / (NUM_POINTS - 1)) - 0.5; // -0.5 to 0.5
+      // Force proportional to tilt and position
+      // Liquid on the "downhill" side gets pushed down (positive height = lower)
+      // Liquid on the "uphill" side gets pulled up (negative height = higher)
+      waves.velocities[i] += tiltX * pos * 1.2;
+    }
+    // Also apply a bulk shift so the equilibrium surface tilts
+    for (let i = 0; i < NUM_POINTS; i++) {
+      const pos = (i / (NUM_POINTS - 1)) - 0.5;
+      const targetOffset = tiltX * pos * 30; // max 15px offset at edges
+      const diff = targetOffset - waves.heights[i];
+      waves.velocities[i] += diff * 0.02;
     }
   }, []);
 

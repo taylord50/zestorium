@@ -1,0 +1,9 @@
+{
+  "name": "Zestorium",
+  "short_name": "Zestorium",
+  "display": "standalone",
+  "orientation": "portrait",
+  "start_url": "/",
+  "background_color": "#FBF8F1",
+  "theme_color": "#F5D547"
+}
