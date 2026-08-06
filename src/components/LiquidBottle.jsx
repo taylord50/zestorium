@@ -85,13 +85,13 @@ function LiquidBottle({ value, onChange }) {
     const waves = wavesRef.current;
     for (let i = 0; i < NUM_POINTS; i++) {
       const pos = (i / (NUM_POINTS - 1)) - 0.5;
-      waves.velocities[i] += tiltX * pos * 2.0;
+      waves.velocities[i] += tiltX * pos * 4.0;
     }
     for (let i = 0; i < NUM_POINTS; i++) {
       const pos = (i / (NUM_POINTS - 1)) - 0.5;
-      const targetOffset = tiltX * pos * 80;
+      const targetOffset = tiltX * pos * 150;
       const diff = targetOffset - waves.heights[i];
-      waves.velocities[i] += diff * 0.06;
+      waves.velocities[i] += diff * 0.12;
     }
   }, []);
 
