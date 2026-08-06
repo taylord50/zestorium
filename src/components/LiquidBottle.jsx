@@ -99,24 +99,22 @@ function LiquidBottle({ value, onChange }) {
   const handlePointerMove = (e) => {
     if (!dragging) return;
     const rect = containerRef.current.getBoundingClientRect();
-    const y = e.clientY - rect.top;
 
-    // Calculate fill level (inverted: top = full, bottom = empty)
-    const bodyStart = (BODY_TOP / canvasH) * rect.height;
-    const bodyEnd = ((BODY_TOP + BODY_HEIGHT) / canvasH) * rect.height;
-    const relY = (y - bodyStart) / (bodyEnd - bodyStart);
+    // Map pointer position to fill level (entire canvas is the drag zone)
+    const y = e.clientY - rect.top;
+    const relY = y / rect.height;
+    // Invert: top = full, bottom = empty. Use full canvas height.
     const newLevel = Math.max(0.05, Math.min(1, 1 - relY));
-    const snapped = Math.round(newLevel * 20) / 20; // snap to 5% increments
 
     // Calculate drag velocity for wave disturbance
     if (lastDragY.current !== null) {
       const dy = e.clientY - lastDragY.current;
       dragVelocity.current = dy * 0.3;
-      disturb(dy * 0.15);
+      disturb(dy * 0.12);
     }
     lastDragY.current = e.clientY;
 
-    onChange(snapped);
+    onChange(newLevel); // completely smooth, no snapping
   };
 
   const handlePointerUp = () => {
@@ -208,7 +206,7 @@ function LiquidBottle({ value, onChange }) {
     canvas.style.height = `${canvasH}px`;
   }, [scale]);
 
-  const mlAmount = Math.round(750 * value);
+  const mlAmount = Math.round((750 * value) / 25) * 25;
 
   return (
     <div className="liquid-bottle-container">
@@ -218,8 +216,8 @@ function LiquidBottle({ value, onChange }) {
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        onPointerLeave={handlePointerUp}
-        style={{ touchAction: 'none', cursor: 'ns-resize' }}
+        onPointerCancel={handlePointerUp}
+        style={{ touchAction: 'none', cursor: 'ns-resize', padding: '20px' }}
       >
         <canvas ref={canvasRef} className="liquid-bottle-canvas" />
       </div>
