@@ -64,25 +64,32 @@ function LiquidBottle({ value, onChange }) {
   // Gyroscope/accelerometer for phone sloshing
   const handleOrientation = useCallback((e) => {
     if (e.gamma === null || e.beta === null) return;
-    // gamma: left/right tilt (-90 to 90)
-    // beta: forward/back tilt (-180 to 180)
-    // We use gamma for left-right liquid movement
-    // and beta to shift the "resting level" (tilt forward = liquid toward screen)
-    const tiltX = e.gamma / 90; // -1 to 1, left/right
+
+    // Compensate for screen orientation on iOS
+    let tiltX;
+    const orientation = window.screen?.orientation?.angle || window.orientation || 0;
+
+    if (orientation === 0) {
+      // Portrait: gamma is left/right
+      tiltX = -(e.gamma / 90);
+    } else if (orientation === 90 || orientation === -90) {
+      // Landscape: beta becomes left/right
+      tiltX = orientation === 90 ? (e.beta / 90) : -(e.beta / 90);
+    } else {
+      tiltX = -(e.gamma / 90);
+    }
+
+    // Clamp
+    tiltX = Math.max(-1, Math.min(1, tiltX));
 
     const waves = wavesRef.current;
-    // Apply gravity-like force: liquid moves toward the low side
-    for (let i = 0; i < NUM_POINTS; i++) {
-      const pos = (i / (NUM_POINTS - 1)) - 0.5; // -0.5 to 0.5
-      // Force proportional to tilt and position
-      // Liquid on the "downhill" side gets pushed down (positive height = lower)
-      // Liquid on the "uphill" side gets pulled up (negative height = higher)
-      waves.velocities[i] += tiltX * pos * 1.2;
-    }
-    // Also apply a bulk shift so the equilibrium surface tilts
     for (let i = 0; i < NUM_POINTS; i++) {
       const pos = (i / (NUM_POINTS - 1)) - 0.5;
-      const targetOffset = tiltX * pos * 30; // max 15px offset at edges
+      waves.velocities[i] += tiltX * pos * 1.2;
+    }
+    for (let i = 0; i < NUM_POINTS; i++) {
+      const pos = (i / (NUM_POINTS - 1)) - 0.5;
+      const targetOffset = tiltX * pos * 30;
       const diff = targetOffset - waves.heights[i];
       waves.velocities[i] += diff * 0.02;
     }
