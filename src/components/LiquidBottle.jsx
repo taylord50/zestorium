@@ -54,20 +54,52 @@ function LiquidBottle({ value, onChange }) {
 
   // Gyroscope/accelerometer for phone sloshing
   useEffect(() => {
+    let permissionGranted = false;
+
+    const requestPermission = async () => {
+      // iOS 13+ requires permission request
+      if (typeof DeviceOrientationEvent !== 'undefined' &&
+          typeof DeviceOrientationEvent.requestPermission === 'function') {
+        try {
+          const permission = await DeviceOrientationEvent.requestPermission();
+          permissionGranted = permission === 'granted';
+        } catch (e) {
+          permissionGranted = false;
+        }
+      } else {
+        // Android and older iOS don't need permission
+        permissionGranted = true;
+      }
+
+      if (permissionGranted) {
+        window.addEventListener('deviceorientation', handleOrientation);
+      }
+    };
+
     const handleOrientation = (e) => {
       if (e.gamma === null) return;
-      // gamma is left-right tilt (-90 to 90)
-      const tilt = e.gamma / 90; // normalize to -1 to 1
+      const tilt = e.gamma / 90;
       const waves = wavesRef.current;
-      // Apply asymmetric force based on tilt direction
       for (let i = 0; i < NUM_POINTS; i++) {
-        const pos = i / (NUM_POINTS - 1); // 0 to 1
+        const pos = i / (NUM_POINTS - 1);
         waves.velocities[i] += tilt * (pos - 0.5) * 0.4;
       }
     };
 
-    window.addEventListener('deviceorientation', handleOrientation);
-    return () => window.removeEventListener('deviceorientation', handleOrientation);
+    // Try to enable on first user interaction (required for iOS)
+    const enableOnInteraction = () => {
+      requestPermission();
+      document.removeEventListener('touchstart', enableOnInteraction);
+      document.removeEventListener('click', enableOnInteraction);
+    };
+    document.addEventListener('touchstart', enableOnInteraction, { once: true });
+    document.addEventListener('click', enableOnInteraction, { once: true });
+
+    return () => {
+      window.removeEventListener('deviceorientation', handleOrientation);
+      document.removeEventListener('touchstart', enableOnInteraction);
+      document.removeEventListener('click', enableOnInteraction);
+    };
   }, []);
 
   // Bubble spawner
