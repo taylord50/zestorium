@@ -20,7 +20,7 @@ const CAP_HEIGHT = 16;
 
 // Wave simulation parameters
 const NUM_POINTS = 40;
-const DAMPING = 0.97;
+const DAMPING = 0.985;
 const TENSION = 0.02;
 const SPREAD = 0.25;
 
@@ -83,16 +83,13 @@ function LiquidBottle({ value, onChange }) {
     tiltX = Math.max(-1, Math.min(1, tiltX));
 
     const waves = wavesRef.current;
-    // Target equilibrium is a straight tilted line (flat surface level with ground)
-    // When phone tilts, liquid surface should be a straight line angled opposite to tilt
+    // Target equilibrium is a straight tilted line (level with ground)
     for (let i = 0; i < NUM_POINTS; i++) {
       const pos = (i / (NUM_POINTS - 1)) - 0.5; // -0.5 to 0.5
-      const targetHeight = tiltX * pos * 120; // straight line target
+      const targetHeight = tiltX * pos * 200; // straight line, strong enough to reach level
       const diff = targetHeight - waves.heights[i];
-      // Gently drive toward the target line (acts like gravity settling)
-      waves.velocities[i] += diff * 0.08;
-      // Also add a small impulse for sloshing feel on sudden tilts
-      waves.velocities[i] += tiltX * 1.5;
+      // Gentle pull toward equilibrium - weak enough to allow sloshing
+      waves.velocities[i] += diff * 0.03;
     }
   }, []);
 
