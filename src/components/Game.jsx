@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
 import { CITRUS_DATA } from '../config/citrusData';
 
-import LiquidBottle from './LiquidBottle';
+import LiquidBottle, { DEFAULT_PARAMS } from './LiquidBottle';
 
 const SPIRIT_OPTIONS = [
   { label: 'Vodka', sublabel: '80 proof', proof: 80 },
@@ -61,6 +61,11 @@ function Game({ onComplete }) {
   const [spirit, setSpirit] = useState(null);
   const [bottleLevel, setBottleLevel] = useState(0.75);
   const [fruitCount, setFruitCount] = useState(8);
+  const [physicsParams, setPhysicsParams] = useState({ ...DEFAULT_PARAMS });
+
+  const updateParam = (key, val) => {
+    setPhysicsParams((prev) => ({ ...prev, [key]: parseFloat(val) }));
+  };
 
   const handleCitrus = (type) => {
     setCitrusType(type);
@@ -89,6 +94,22 @@ function Game({ onComplete }) {
 
   return (
     <div className="game">
+      {/* Debug Physics Sliders */}
+      <div className="debug-panel" style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999, background: 'rgba(255,255,255,0.95)', padding: '8px 12px', fontSize: '11px', display: 'flex', flexWrap: 'wrap', gap: '8px', borderBottom: '1px solid #ccc' }}>
+        {[
+          { key: 'damping', min: 0.9, max: 0.999, step: 0.001, label: 'Damping' },
+          { key: 'tension', min: 0.005, max: 0.1, step: 0.005, label: 'Tension' },
+          { key: 'spread', min: 0.05, max: 0.5, step: 0.05, label: 'Spread' },
+          { key: 'tiltTarget', min: 50, max: 400, step: 10, label: 'Tilt Target' },
+          { key: 'tiltPull', min: 0.005, max: 0.15, step: 0.005, label: 'Tilt Pull' },
+          { key: 'dragDisturb', min: 0.02, max: 0.5, step: 0.02, label: 'Drag Disturb' },
+        ].map(({ key, min, max, step, label }) => (
+          <label key={key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '80px' }}>
+            <span>{label}: {physicsParams[key]}</span>
+            <input type="range" min={min} max={max} step={step} value={physicsParams[key]} onChange={(e) => updateParam(key, e.target.value)} style={{ width: '80px' }} />
+          </label>
+        ))}
+      </div>
       <AnimatePresence mode="wait">
         {step === 0 && (
           <motion.div
@@ -157,7 +178,7 @@ function Game({ onComplete }) {
             transition={{ duration: 0.25 }}
           >
             <h2>How full is your bottle?</h2>
-            <LiquidBottle value={bottleLevel} onChange={setBottleLevel} />
+            <LiquidBottle value={bottleLevel} onChange={setBottleLevel} params={physicsParams} />
             <motion.button
               className="game-confirm"
               onClick={handleBottleConfirm}

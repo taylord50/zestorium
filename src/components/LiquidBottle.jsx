@@ -18,13 +18,19 @@ const BODY_TOP = NECK_HEIGHT + SHOULDER_HEIGHT;
 const BODY_HEIGHT = BOTTLE_HEIGHT - BODY_TOP;
 const CAP_HEIGHT = 16;
 
-// Wave simulation parameters
-const NUM_POINTS = 40;
-const DAMPING = 0.985;
-const TENSION = 0.02;
-const SPREAD = 0.25;
+// Wave simulation parameters (defaults)
+const DEFAULT_PARAMS = {
+  damping: 0.985,
+  tension: 0.02,
+  spread: 0.25,
+  tiltTarget: 200,
+  tiltPull: 0.03,
+  dragDisturb: 0.12,
+};
 
-function LiquidBottle({ value, onChange }) {
+const NUM_POINTS = 40;
+
+function LiquidBottle({ value, onChange, params = DEFAULT_PARAMS }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const animRef = useRef(null);
@@ -86,10 +92,9 @@ function LiquidBottle({ value, onChange }) {
     // Target equilibrium is a straight tilted line (level with ground)
     for (let i = 0; i < NUM_POINTS; i++) {
       const pos = (i / (NUM_POINTS - 1)) - 0.5; // -0.5 to 0.5
-      const targetHeight = tiltX * pos * 200; // straight line, strong enough to reach level
+      const targetHeight = tiltX * pos * params.tiltTarget;
       const diff = targetHeight - waves.heights[i];
-      // Gentle pull toward equilibrium - weak enough to allow sloshing
-      waves.velocities[i] += diff * 0.03;
+      waves.velocities[i] += diff * params.tiltPull;
     }
   }, []);
 
@@ -158,7 +163,7 @@ function LiquidBottle({ value, onChange }) {
     if (lastDragY.current !== null) {
       const dy = e.clientY - lastDragY.current;
       dragVelocity.current = dy * 0.3;
-      disturb(dy * 0.12);
+      disturb(dy * params.dragDisturb);
     }
     lastDragY.current = e.clientY;
 
@@ -189,8 +194,8 @@ function LiquidBottle({ value, onChange }) {
 
       // Update velocities based on spring tension
       for (let i = 0; i < NUM_POINTS; i++) {
-        velocities[i] += -TENSION * heights[i];
-        velocities[i] *= DAMPING;
+        velocities[i] += -params.tension * heights[i];
+        velocities[i] *= params.damping;
         heights[i] += velocities[i];
       }
 
@@ -198,11 +203,11 @@ function LiquidBottle({ value, onChange }) {
       for (let j = 0; j < 2; j++) {
         for (let i = 0; i < NUM_POINTS; i++) {
           if (i > 0) {
-            leftDeltas[i] = SPREAD * (heights[i] - heights[i - 1]);
+            leftDeltas[i] = params.spread * (heights[i] - heights[i - 1]);
             velocities[i - 1] += leftDeltas[i];
           }
           if (i < NUM_POINTS - 1) {
-            rightDeltas[i] = SPREAD * (heights[i] - heights[i + 1]);
+            rightDeltas[i] = params.spread * (heights[i] - heights[i + 1]);
             velocities[i + 1] += rightDeltas[i];
           }
         }
@@ -474,4 +479,5 @@ function drawCap(ctx) {
   ctx.fillRect(capX, CAP_HEIGHT - 3, capW, 3);
 }
 
+export { DEFAULT_PARAMS };
 export default LiquidBottle;
