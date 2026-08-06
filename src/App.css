@@ -879,18 +879,22 @@ input[type="range"]::-moz-range-thumb {
 .game {
   width: 100%;
   padding: 1rem 0;
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .game-step {
   text-align: center;
-  animation: fadeIn 0.2s ease-out;
+  width: 100%;
 }
 
 .game-step h2 {
   font-family: var(--font-serif);
   font-size: 1.75rem;
   font-weight: 400;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
   color: var(--color-charcoal);
 }
 
@@ -898,7 +902,7 @@ input[type="range"]::-moz-range-thumb {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 1rem;
-  max-width: 400px;
+  max-width: 360px;
   margin: 0 auto;
 }
 
@@ -906,38 +910,42 @@ input[type="range"]::-moz-range-thumb {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 1.5rem 1rem;
+  padding: 2rem 1rem;
   border: 2px solid var(--color-border);
   border-radius: var(--radius);
   background: var(--color-warm-white);
   cursor: pointer;
-  transition: all 0.2s;
   font-family: var(--font-sans);
+  box-shadow: var(--shadow);
 }
 
 .game-option:hover {
   border-color: var(--color-lemon-dark);
   background: var(--color-lemon-light);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-hover);
 }
 
 .game-option-emoji {
-  font-size: 2.5rem;
-  margin-bottom: 0.5rem;
+  font-size: 3rem;
+  margin-bottom: 0.75rem;
 }
 
 .game-option-label {
-  font-size: 0.9rem;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--color-charcoal);
+}
+
+.game-option-sublabel {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  margin-left: auto;
 }
 
 .game-options-list {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  max-width: 350px;
+  max-width: 320px;
   margin: 0 auto;
 }
 
@@ -945,96 +953,204 @@ input[type="range"]::-moz-range-thumb {
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 1rem 1.5rem;
+  padding: 1.25rem 1.5rem;
   border: 2px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-warm-white);
   cursor: pointer;
-  transition: all 0.2s;
   font-family: var(--font-sans);
   text-align: left;
+  box-shadow: var(--shadow);
 }
 
 .game-option-wide:hover {
   border-color: var(--color-lemon-dark);
   background: var(--color-lemon-light);
-  transform: translateY(-1px);
 }
 
-.game-options-bottles {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.game-option-bottle {
+/* Bottle Slider */
+.bottle-slider-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0.75rem;
-  border: 2px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-warm-white);
-  cursor: pointer;
-  transition: all 0.2s;
-  font-family: var(--font-sans);
-  min-width: 80px;
+  margin-bottom: 1.5rem;
 }
 
-.game-option-bottle:hover {
-  border-color: var(--color-lemon-dark);
-  background: var(--color-lemon-light);
+.bottle-slider {
+  cursor: ns-resize;
+  padding: 0.5rem;
+  user-select: none;
 }
 
-.bottle-visual {
-  width: 30px;
-  height: 60px;
-  border: 2px solid var(--color-charcoal-light);
-  border-radius: 4px 4px 6px 6px;
+.bottle-outline {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.bottle-neck {
+  width: 24px;
+  height: 20px;
+  border: 3px solid var(--color-charcoal-light);
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  background: var(--color-cream);
+}
+
+.bottle-body {
+  width: 80px;
+  height: 200px;
+  border: 3px solid var(--color-charcoal-light);
+  border-radius: 4px 4px 12px 12px;
   position: relative;
   overflow: hidden;
-  margin-bottom: 0.5rem;
+  background: var(--color-cream);
 }
 
-.bottle-fill {
+.bottle-liquid {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  background: var(--color-lemon);
-  transition: height 0.2s;
+  background: linear-gradient(to top, #D4A843, #F5D547);
+  border-radius: 0 0 9px 9px;
 }
 
-.game-option-bottle .game-option-label {
+.bottle-measurements {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 6px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 12% 0;
+  pointer-events: none;
+}
+
+.bottle-measurements span {
   font-size: 0.7rem;
+  color: var(--color-muted);
+  position: absolute;
 }
 
-.game-options-counts {
+.bottle-amount {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-green);
+  margin-top: 0.75rem;
+}
+
+.bottle-hint {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  margin-top: 0.25rem;
+}
+
+/* Fruit Counter */
+.fruit-counter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.fruit-display {
+  margin-bottom: 1.25rem;
+}
+
+.fruit-count-big {
+  font-size: 3.5rem;
+  font-weight: 700;
+  color: var(--color-green);
+  display: block;
+  line-height: 1;
+}
+
+.fruit-count-label {
+  font-size: 1rem;
+  color: var(--color-muted);
+}
+
+.fruit-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.75rem;
-  max-width: 350px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.5rem;
+  max-width: 280px;
   margin: 0 auto;
 }
 
-.game-option-count {
-  padding: 1rem;
-  font-size: 1.25rem;
-  font-weight: 700;
-  border: 2px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-warm-white);
+.fruit-dot {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  border: none;
+  background: none;
   cursor: pointer;
-  transition: all 0.2s;
-  font-family: var(--font-sans);
-  color: var(--color-charcoal);
+  border-radius: 50%;
+  padding: 0;
 }
 
-.game-option-count:hover {
-  border-color: var(--color-lemon-dark);
+.fruit-dot.active {
   background: var(--color-lemon-light);
-  transform: translateY(-1px);
+}
+
+.fruit-hint {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  margin-top: 0.75rem;
+}
+
+/* Liquid Bottle */
+.liquid-bottle-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.liquid-bottle-wrapper {
+  position: relative;
+}
+
+.liquid-bottle-canvas {
+  display: block;
+}
+
+.bottle-amount-text {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--color-green);
+  margin-top: 0.5rem;
+}
+
+.bottle-drag-hint {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  margin-top: 0.25rem;
+}
+
+/* Game Confirm Button */
+.game-confirm {
+  display: inline-block;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-charcoal);
+  background: var(--color-lemon);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  margin-top: 1rem;
+  box-shadow: var(--shadow);
+}
+
+.game-confirm:hover {
+  background: var(--color-lemon-dark);
 }
 
 .skip-link {
