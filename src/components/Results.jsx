@@ -119,6 +119,40 @@ function Results({ recipe }) {
           Come back between <strong>{earliestDateStr}</strong> and <strong>{latestDateStr}</strong> and open Phase 2 below.
         </div>
 
+        {/* Share Your Batch */}
+        <div className="share-section">
+          <h4>Started your batch? Share it.</h4>
+          <p className="share-hint">Take a photo of your jar and post it. Here's a caption:</p>
+          <div className="share-caption">
+            <p className="caption-text">
+              Just started a batch of {citrusLabel.toLowerCase()}cello. {numFruits} {citrusLabel.toLowerCase()}s, {spiritMl}ml of {alcoholProof}-proof, 5 minutes of prep. {Math.floor(finalVolumeMl / 44)} servings ready in {infusionRange}. Check what you can make: zestorium.com
+            </p>
+            <button
+              className="btn-copy"
+              onClick={() => {
+                const caption = `Just started a batch of ${citrusLabel.toLowerCase()}cello. ${numFruits} ${citrusLabel.toLowerCase()}s, ${spiritMl}ml of ${alcoholProof}-proof, 5 minutes of prep. ${Math.floor(finalVolumeMl / 44)} servings ready in ${infusionRange}. Check what you can make: zestorium.com`;
+                navigator.clipboard.writeText(caption);
+              }}
+            >
+              Copy caption
+            </button>
+            {typeof navigator !== 'undefined' && navigator.share && (
+              <button
+                className="btn-share"
+                onClick={() => {
+                  navigator.share({
+                    title: 'My batch of ' + citrusLabel.toLowerCase() + 'cello',
+                    text: `Just started a batch of ${citrusLabel.toLowerCase()}cello. ${numFruits} ${citrusLabel.toLowerCase()}s, ${spiritMl}ml of ${alcoholProof}-proof, 5 minutes of prep. Check what you can make:`,
+                    url: 'https://zestorium.com',
+                  });
+                }}
+              >
+                Share
+              </button>
+            )}
+          </div>
+        </div>
+
         <button
           className="btn-phase2"
           onClick={() => setShowModal(true)}

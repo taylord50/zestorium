@@ -2,12 +2,15 @@ import { useState } from 'react';
 import Calculator from './components/Calculator';
 import Results from './components/Results';
 import Story from './components/Story';
+import Game from './components/Game';
 import { calculateByIngredients, calculateByServings } from './engine/calculate';
+import { CITRUS_DATA } from './config/citrusData';
 import './App.css';
 
 function App() {
   const [recipe, setRecipe] = useState(null);
-  const [page, setPage] = useState('calculator'); // 'calculator' | 'story'
+  const [page, setPage] = useState('game'); // 'game' | 'calculator' | 'story'
+  const [gameDefaults, setGameDefaults] = useState(null);
 
   const handleInputChange = (state) => {
     let result;
@@ -40,8 +43,50 @@ function App() {
     }
   };
 
+  const handleGameComplete = (choices) => {
+    setGameDefaults(choices);
+    setPage('calculator');
+
+    // Immediately calculate with game choices
+    const citrus = CITRUS_DATA[choices.citrusType];
+    const result = calculateByIngredients({
+      alcoholMl: choices.alcoholMl,
+      numFruits: choices.numFruits,
+      fruitDiameter: citrus.avgDiameter,
+      alcoholProof: choices.alcoholProof,
+      citrusType: choices.citrusType,
+      targetAbv: 0.30,
+      targetSweetness: 200,
+    });
+    setRecipe(result);
+
+    if (window.plausible) {
+      window.plausible('Game Completed', {
+        props: { citrus: choices.citrusType, proof: choices.alcoholProof },
+      });
+    }
+  };
+
   if (page === 'story') {
     return <Story onBack={() => setPage('calculator')} />;
+  }
+
+  if (page === 'game') {
+    return (
+      <div className="app app-game">
+        <header className="header">
+          <h1 className="logo">Zestorium</h1>
+          <p className="tagline">
+            Making any citrus liqueur at home is easy. You can do it in any amount,
+            starting with ingredients you probably already have.
+          </p>
+        </header>
+        <Game onComplete={handleGameComplete} />
+        <p className="skip-link">
+          <button onClick={() => setPage('calculator')}>Skip to full calculator →</button>
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -58,7 +103,7 @@ function App() {
       </header>
 
       <main className="main">
-        <Calculator onInputChange={handleInputChange} />
+        <Calculator onInputChange={handleInputChange} gameDefaults={gameDefaults} />
         {recipe && <Results recipe={recipe} />}
       </main>
 

@@ -514,6 +514,75 @@ input[type="range"]::-moz-range-thumb {
 
 /* Phase 2 Toggle (removed - now modal) */
 
+/* Share Section */
+.share-section {
+  margin-top: 1.25rem;
+  padding: 1.25rem;
+  background: var(--color-cream);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+}
+
+.share-section h4 {
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  font-weight: 400;
+  margin-bottom: 0.35rem;
+  color: var(--color-charcoal);
+}
+
+.share-hint {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  margin-bottom: 0.75rem;
+}
+
+.share-caption {
+  position: relative;
+}
+
+.caption-text {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--color-charcoal-light);
+  background: var(--color-warm-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.btn-copy,
+.btn-share {
+  padding: 0.5rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  margin-right: 0.5rem;
+  transition: all 0.2s;
+}
+
+.btn-copy {
+  background: var(--color-lemon);
+  color: var(--color-charcoal);
+}
+
+.btn-copy:hover {
+  background: var(--color-lemon-dark);
+}
+
+.btn-share {
+  background: var(--color-green);
+  color: white;
+}
+
+.btn-share:hover {
+  background: var(--color-green-light);
+}
+
 /* Recipe Steps */
 .divider {
   border: none;
@@ -797,6 +866,194 @@ input[type="range"]::-moz-range-thumb {
   font-size: 0.8rem;
   color: var(--color-muted);
   font-style: italic;
+}
+
+/* Game */
+.app-game {
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.game {
+  width: 100%;
+  padding: 1rem 0;
+}
+
+.game-step {
+  text-align: center;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.game-step h2 {
+  font-family: var(--font-serif);
+  font-size: 1.75rem;
+  font-weight: 400;
+  margin-bottom: 1.5rem;
+  color: var(--color-charcoal);
+}
+
+.game-options-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.game-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem 1rem;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-warm-white);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: var(--font-sans);
+}
+
+.game-option:hover {
+  border-color: var(--color-lemon-dark);
+  background: var(--color-lemon-light);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
+}
+
+.game-option-emoji {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.game-option-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-charcoal);
+}
+
+.game-options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 350px;
+  margin: 0 auto;
+}
+
+.game-option-wide {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-warm-white);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: var(--font-sans);
+  text-align: left;
+}
+
+.game-option-wide:hover {
+  border-color: var(--color-lemon-dark);
+  background: var(--color-lemon-light);
+  transform: translateY(-1px);
+}
+
+.game-options-bottles {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.game-option-bottle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.75rem;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-warm-white);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: var(--font-sans);
+  min-width: 80px;
+}
+
+.game-option-bottle:hover {
+  border-color: var(--color-lemon-dark);
+  background: var(--color-lemon-light);
+}
+
+.bottle-visual {
+  width: 30px;
+  height: 60px;
+  border: 2px solid var(--color-charcoal-light);
+  border-radius: 4px 4px 6px 6px;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.bottle-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--color-lemon);
+  transition: height 0.2s;
+}
+
+.game-option-bottle .game-option-label {
+  font-size: 0.7rem;
+}
+
+.game-options-counts {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  max-width: 350px;
+  margin: 0 auto;
+}
+
+.game-option-count {
+  padding: 1rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-warm-white);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: var(--font-sans);
+  color: var(--color-charcoal);
+}
+
+.game-option-count:hover {
+  border-color: var(--color-lemon-dark);
+  background: var(--color-lemon-light);
+  transform: translateY(-1px);
+}
+
+.skip-link {
+  text-align: center;
+  margin-top: 2rem;
+}
+
+.skip-link button {
+  background: none;
+  border: none;
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  text-decoration: underline;
+}
+
+.skip-link button:hover {
+  color: var(--color-charcoal);
 }
 
 /* Responsive — stack on narrow screens */
