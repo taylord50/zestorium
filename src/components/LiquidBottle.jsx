@@ -83,14 +83,17 @@ function LiquidBottle({ value, onChange }) {
     tiltX = Math.max(-1, Math.min(1, tiltX));
 
     const waves = wavesRef.current;
-    // Apply sideways gravity: push liquid toward the low side
-    const flowForce = tiltX * 8.0;
-    for (let i = 1; i < NUM_POINTS - 1; i++) {
-      waves.velocities[i] += flowForce;
+    // Target equilibrium is a straight tilted line (flat surface level with ground)
+    // When phone tilts, liquid surface should be a straight line angled opposite to tilt
+    for (let i = 0; i < NUM_POINTS; i++) {
+      const pos = (i / (NUM_POINTS - 1)) - 0.5; // -0.5 to 0.5
+      const targetHeight = tiltX * pos * 120; // straight line target
+      const diff = targetHeight - waves.heights[i];
+      // Gently drive toward the target line (acts like gravity settling)
+      waves.velocities[i] += diff * 0.08;
+      // Also add a small impulse for sloshing feel on sudden tilts
+      waves.velocities[i] += tiltX * 1.5;
     }
-    // Boundary: accumulate on the low side wall
-    waves.velocities[NUM_POINTS - 1] += tiltX * 12.0;
-    waves.velocities[0] -= tiltX * 12.0;
   }, []);
 
   const enableGyro = async () => {
