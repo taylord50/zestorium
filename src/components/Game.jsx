@@ -95,18 +95,19 @@ function Game({ onComplete }) {
   return (
     <div className="game">
       {/* Debug Physics Sliders */}
-      <div className="debug-panel" style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999, background: 'rgba(255,255,255,0.95)', padding: '8px 12px', fontSize: '11px', display: 'flex', flexWrap: 'wrap', gap: '8px', borderBottom: '1px solid #ccc' }}>
+      <div className="debug-panel" style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999, background: 'rgba(255,255,255,0.97)', padding: '10px 16px', fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '6px', borderBottom: '2px solid #ccc', maxHeight: '45vh', overflowY: 'auto' }}>
         {[
           { key: 'damping', min: 0.9, max: 0.999, step: 0.001, label: 'Damping' },
           { key: 'tension', min: 0.005, max: 0.1, step: 0.005, label: 'Tension' },
           { key: 'spread', min: 0.05, max: 0.5, step: 0.05, label: 'Spread' },
-          { key: 'tiltTarget', min: 50, max: 400, step: 10, label: 'Tilt Target' },
-          { key: 'tiltPull', min: 0.005, max: 0.15, step: 0.005, label: 'Tilt Pull' },
+          { key: 'tiltTarget', min: 50, max: 500, step: 10, label: 'Tilt Target' },
+          { key: 'tiltPull', min: 0.005, max: 0.2, step: 0.005, label: 'Tilt Pull' },
           { key: 'dragDisturb', min: 0.02, max: 0.5, step: 0.02, label: 'Drag Disturb' },
         ].map(({ key, min, max, step, label }) => (
-          <label key={key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '80px' }}>
-            <span>{label}: {physicsParams[key]}</span>
-            <input type="range" min={min} max={max} step={step} value={physicsParams[key]} onChange={(e) => updateParam(key, e.target.value)} style={{ width: '80px' }} />
+          <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ minWidth: '90px', fontWeight: 600 }}>{label}</span>
+            <input type="range" min={min} max={max} step={step} value={physicsParams[key]} onChange={(e) => updateParam(key, e.target.value)} style={{ flex: 1 }} />
+            <span style={{ minWidth: '50px', textAlign: 'right', fontFamily: 'monospace' }}>{physicsParams[key]}</span>
           </label>
         ))}
       </div>

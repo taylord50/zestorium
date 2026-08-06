@@ -41,6 +41,8 @@ function LiquidBottle({ value, onChange, params = DEFAULT_PARAMS }) {
   const lastDragY = useRef(null);
   const dragVelocity = useRef(0);
   const bubblesRef = useRef([]);
+  const paramsRef = useRef(params);
+  paramsRef.current = params; // always fresh
   const [dragging, setDragging] = useState(false);
   const [gyroEnabled, setGyroEnabled] = useState(false);
   const [gyroAvailable, setGyroAvailable] = useState(false);
@@ -89,12 +91,13 @@ function LiquidBottle({ value, onChange, params = DEFAULT_PARAMS }) {
     tiltX = Math.max(-1, Math.min(1, tiltX));
 
     const waves = wavesRef.current;
+    const p = paramsRef.current;
     // Target equilibrium is a straight tilted line (level with ground)
     for (let i = 0; i < NUM_POINTS; i++) {
       const pos = (i / (NUM_POINTS - 1)) - 0.5; // -0.5 to 0.5
-      const targetHeight = tiltX * pos * params.tiltTarget;
+      const targetHeight = tiltX * pos * p.tiltTarget;
       const diff = targetHeight - waves.heights[i];
-      waves.velocities[i] += diff * params.tiltPull;
+      waves.velocities[i] += diff * p.tiltPull;
     }
   }, []);
 
@@ -163,7 +166,7 @@ function LiquidBottle({ value, onChange, params = DEFAULT_PARAMS }) {
     if (lastDragY.current !== null) {
       const dy = e.clientY - lastDragY.current;
       dragVelocity.current = dy * 0.3;
-      disturb(dy * params.dragDisturb);
+      disturb(dy * paramsRef.current.dragDisturb);
     }
     lastDragY.current = e.clientY;
 
@@ -191,11 +194,12 @@ function LiquidBottle({ value, onChange, params = DEFAULT_PARAMS }) {
       // Physics step: spring model
       const leftDeltas = new Array(NUM_POINTS).fill(0);
       const rightDeltas = new Array(NUM_POINTS).fill(0);
+      const p = paramsRef.current;
 
       // Update velocities based on spring tension
       for (let i = 0; i < NUM_POINTS; i++) {
-        velocities[i] += -params.tension * heights[i];
-        velocities[i] *= params.damping;
+        velocities[i] += -p.tension * heights[i];
+        velocities[i] *= p.damping;
         heights[i] += velocities[i];
       }
 
@@ -203,11 +207,11 @@ function LiquidBottle({ value, onChange, params = DEFAULT_PARAMS }) {
       for (let j = 0; j < 2; j++) {
         for (let i = 0; i < NUM_POINTS; i++) {
           if (i > 0) {
-            leftDeltas[i] = params.spread * (heights[i] - heights[i - 1]);
+            leftDeltas[i] = p.spread * (heights[i] - heights[i - 1]);
             velocities[i - 1] += leftDeltas[i];
           }
           if (i < NUM_POINTS - 1) {
-            rightDeltas[i] = params.spread * (heights[i] - heights[i + 1]);
+            rightDeltas[i] = p.spread * (heights[i] - heights[i + 1]);
             velocities[i + 1] += rightDeltas[i];
           }
         }
