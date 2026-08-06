@@ -36,6 +36,15 @@ function LiquidBottle({ value, onChange }) {
   const dragVelocity = useRef(0);
   const bubblesRef = useRef([]);
   const [dragging, setDragging] = useState(false);
+  const [gyroEnabled, setGyroEnabled] = useState(false);
+  const [gyroAvailable, setGyroAvailable] = useState(false);
+
+  // Check if gyro is available
+  useEffect(() => {
+    if (typeof DeviceOrientationEvent !== 'undefined') {
+      setGyroAvailable(true);
+    }
+  }, []);
 
   // Scale factor for hi-dpi
   const scale = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
@@ -53,54 +62,40 @@ function LiquidBottle({ value, onChange }) {
   }, []);
 
   // Gyroscope/accelerometer for phone sloshing
-  useEffect(() => {
-    let permissionGranted = false;
+  const handleOrientation = useCallback((e) => {
+    if (e.gamma === null) return;
+    const tilt = e.gamma / 90;
+    const waves = wavesRef.current;
+    for (let i = 0; i < NUM_POINTS; i++) {
+      const pos = i / (NUM_POINTS - 1);
+      waves.velocities[i] += tilt * (pos - 0.5) * 0.4;
+    }
+  }, []);
 
-    const requestPermission = async () => {
-      // iOS 13+ requires permission request
-      if (typeof DeviceOrientationEvent !== 'undefined' &&
-          typeof DeviceOrientationEvent.requestPermission === 'function') {
-        try {
-          const permission = await DeviceOrientationEvent.requestPermission();
-          permissionGranted = permission === 'granted';
-        } catch (e) {
-          permissionGranted = false;
+  const enableGyro = async () => {
+    try {
+      if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+        const permission = await DeviceOrientationEvent.requestPermission();
+        if (permission === 'granted') {
+          window.addEventListener('deviceorientation', handleOrientation);
+          setGyroEnabled(true);
         }
       } else {
-        // Android and older iOS don't need permission
-        permissionGranted = true;
-      }
-
-      if (permissionGranted) {
+        // Android — no permission needed
         window.addEventListener('deviceorientation', handleOrientation);
+        setGyroEnabled(true);
       }
-    };
+    } catch (e) {
+      // Permission denied or not available
+    }
+  };
 
-    const handleOrientation = (e) => {
-      if (e.gamma === null) return;
-      const tilt = e.gamma / 90;
-      const waves = wavesRef.current;
-      for (let i = 0; i < NUM_POINTS; i++) {
-        const pos = i / (NUM_POINTS - 1);
-        waves.velocities[i] += tilt * (pos - 0.5) * 0.4;
-      }
-    };
-
-    // Try to enable on first user interaction (required for iOS)
-    const enableOnInteraction = () => {
-      requestPermission();
-      document.removeEventListener('touchstart', enableOnInteraction);
-      document.removeEventListener('click', enableOnInteraction);
-    };
-    document.addEventListener('touchstart', enableOnInteraction, { once: true });
-    document.addEventListener('click', enableOnInteraction, { once: true });
-
+  // Cleanup gyro listener
+  useEffect(() => {
     return () => {
       window.removeEventListener('deviceorientation', handleOrientation);
-      document.removeEventListener('touchstart', enableOnInteraction);
-      document.removeEventListener('click', enableOnInteraction);
     };
-  }, []);
+  }, [handleOrientation]);
 
   // Bubble spawner
   useEffect(() => {
@@ -255,6 +250,14 @@ function LiquidBottle({ value, onChange }) {
       </div>
       <p className="bottle-amount-text">~{mlAmount}ml</p>
       <p className="bottle-drag-hint">{dragging ? 'Release to set' : 'Drag up and down'}</p>
+      {gyroAvailable && !gyroEnabled && (
+        <button className="gyro-btn" onClick={enableGyro}>
+          📱 Enable tilt sloshing
+        </button>
+      )}
+      {gyroEnabled && (
+        <p className="gyro-active">✓ Tilt your phone to slosh</p>
+      )}
     </div>
   );
 }

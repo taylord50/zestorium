@@ -1160,6 +1160,24 @@ input[type="range"]::-moz-range-thumb {
   margin-top: 0.25rem;
 }
 
+.gyro-btn {
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.75rem;
+  background: var(--color-lemon-light);
+  border: 1px solid var(--color-lemon-dark);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  color: var(--color-charcoal);
+}
+
+.gyro-active {
+  font-size: 0.7rem;
+  color: var(--color-green);
+  margin-top: 0.4rem;
+}
+
 /* Game Confirm Button */
 .game-confirm {
   display: inline-block;
