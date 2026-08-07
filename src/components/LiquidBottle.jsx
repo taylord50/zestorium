@@ -99,9 +99,23 @@ function LiquidBottle({ value, onChange }) {
     }
   }, [value]);
 
+  // Sleep state: freeze simulation when settled
+  const sleepRef = useRef({ sleeping: false, calmFrames: 0, lastGx: 0 });
+
   // SPH simulation step
   function simulate(particles, gx, gy) {
     const n = particles.length;
+    const sleep = sleepRef.current;
+
+    // Wake up if gravity changed (tilt) meaningfully
+    if (Math.abs(gx - sleep.lastGx) > 0.02) {
+      sleep.sleeping = false;
+      sleep.calmFrames = 0;
+    }
+    sleep.lastGx = gx;
+
+    // If sleeping, skip simulation entirely
+    if (sleep.sleeping) return;
 
     // Apply gravity and predict position
     for (let i = 0; i < n; i++) {
@@ -199,6 +213,7 @@ function LiquidBottle({ value, onChange }) {
     }
 
     // Update velocities from position change, with global damping
+    let totalEnergy = 0;
     for (let i = 0; i < n; i++) {
       const p = particles[i];
       p.vx = ((p.x - p.prevX) / DT) * VELOCITY_DAMPING;
@@ -206,6 +221,23 @@ function LiquidBottle({ value, onChange }) {
       // Kill tiny jitter velocities completely
       if (Math.abs(p.vx) < 0.02) p.vx = 0;
       if (Math.abs(p.vy) < 0.02) p.vy = 0;
+      totalEnergy += p.vx * p.vx + p.vy * p.vy;
+    }
+
+    // Sleep detection: if average kinetic energy is very low for 30 frames, freeze
+    const avgEnergy = totalEnergy / n;
+    if (avgEnergy < 0.15) {
+      sleep.calmFrames++;
+      if (sleep.calmFrames > 30) {
+        sleep.sleeping = true;
+        // Zero all velocities for a clean freeze
+        for (let i = 0; i < n; i++) {
+          particles[i].vx = 0;
+          particles[i].vy = 0;
+        }
+      }
+    } else {
+      sleep.calmFrames = 0;
     }
   }
 
@@ -337,7 +369,9 @@ function LiquidBottle({ value, onChange }) {
 
     if (lastDragY.current !== null) {
       const dy = e.clientY - lastDragY.current;
-      // Shake particles
+      // Wake up and shake particles
+      sleepRef.current.sleeping = false;
+      sleepRef.current.calmFrames = 0;
       gravityRef.current = { x: (Math.random() - 0.5) * 0.8, y: GRAVITY_Y + dy * 0.02 };
       setTimeout(() => { gravityRef.current = { x: 0, y: GRAVITY_Y }; }, 200);
     }
