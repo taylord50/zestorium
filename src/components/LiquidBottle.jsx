@@ -181,8 +181,7 @@ function LiquidBottle({ value, onChange }) {
       disturbanceRef.current *= 0.98;
       waterMat.uniforms.uDisturbance.value = disturbanceRef.current;
 
-      // Gentle idle rotation for visual interest
-      bottleGroup.rotation.y = Math.sin(elapsed * 0.3) * 0.05;
+      // Bottle stays still
 
       renderer.render(scene, camera);
       animRef.current = requestAnimationFrame(animate);
@@ -226,10 +225,10 @@ function LiquidBottle({ value, onChange }) {
     // Spike disturbance based on tilt magnitude
     disturbanceRef.current = Math.min(1, disturbanceRef.current + Math.abs(tiltX) * 0.05);
 
-    // Rotate the bottle group
-    if (bottleRef.current) {
-      bottleRef.current.rotation.z = tiltX * 0.4;
-      bottleRef.current.rotation.x = tiltZ * 0.2;
+    // Keep bottle still, tilt the water instead
+    if (waterRef.current) {
+      waterRef.current.rotation.x = -Math.PI / 2 + tiltZ * 0.3;
+      waterRef.current.rotation.y = tiltX * 0.3;
     }
   }, []);
 
