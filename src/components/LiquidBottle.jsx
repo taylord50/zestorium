@@ -7,16 +7,16 @@ import { useState, useRef, useEffect, useCallback } from 'react';
  */
 
 // Simulation params
-// Particle count scales with fill: 1 particle per ml (750 max)
 const REST_DENSITY = 3.0;
 const STIFFNESS = 0.2;
 const STIFFNESS_NEAR = 0.4;
-const INTERACTION_RADIUS = 14;
+const INTERACTION_RADIUS = 18;
 const VISCOSITY = 0.2;
 const GRAVITY_Y = 0.2;
 const DT = 1;
-const PARTICLE_RADIUS = 3.5;
-const VELOCITY_DAMPING = 0.97; // global energy bleed - makes it settle
+const PARTICLE_RADIUS = 5;
+const VELOCITY_DAMPING = 0.97;
+const PARTICLES_PER_ML = 0.6; // ~450 at 750ml
 
 // Canvas size (matches bottle.png aspect ratio 1024:1536 = 2:3)
 const W = 280;
@@ -125,7 +125,6 @@ function createParticles(count, fillLevel) {
 
 function LiquidBottle({ value, onChange }) {
   const canvasRef = useRef(null);
-  const metaCanvasRef = useRef(null);
   const containerRef = useRef(null);
   const particlesRef = useRef(null);
   const gravityRef = useRef({ x: 0, y: GRAVITY_Y });
@@ -138,7 +137,7 @@ function LiquidBottle({ value, onChange }) {
 
   // Initialize particles
   useEffect(() => {
-    const target = Math.max(40, Math.round(750 * 1.35 * value));
+    const target = Math.max(30, Math.round(750 * PARTICLES_PER_ML * value));
     particlesRef.current = createParticles(target, value);
   }, []);
 
@@ -146,7 +145,7 @@ function LiquidBottle({ value, onChange }) {
   useEffect(() => {
     const particles = particlesRef.current;
     if (!particles) return;
-    const target = Math.max(40, Math.round(750 * 1.35 * value)); // 1.35 particles per ml fills to mid-neck at 750
+    const target = Math.max(30, Math.round(750 * PARTICLES_PER_ML * value));
 
     if (particles.length < target) {
       // Add particles at the top of the current fluid
@@ -211,39 +210,66 @@ function LiquidBottle({ value, onChange }) {
       p.y += p.vy * DT;
     }
 
-    // Double density relaxation
+    // Build spatial hash grid (cell size = interaction radius)
+    const cellSize = INTERACTION_RADIUS;
+    const gridW = Math.ceil(W / cellSize);
+    const gridH = Math.ceil(H / cellSize);
+    const grid = new Array(gridW * gridH);
+    for (let i = 0; i < n; i++) {
+      const p = particles[i];
+      const cx = Math.max(0, Math.min(gridW - 1, Math.floor(p.x / cellSize)));
+      const cy = Math.max(0, Math.min(gridH - 1, Math.floor(p.y / cellSize)));
+      const key = cy * gridW + cx;
+      if (!grid[key]) grid[key] = [];
+      grid[key].push(i);
+    }
+
+    // Get neighbor indices from surrounding cells
+    const getNeighbors = (p) => {
+      const cx = Math.max(0, Math.min(gridW - 1, Math.floor(p.x / cellSize)));
+      const cy = Math.max(0, Math.min(gridH - 1, Math.floor(p.y / cellSize)));
+      const result = [];
+      for (let oy = -1; oy <= 1; oy++) {
+        for (let ox = -1; ox <= 1; ox++) {
+          const nx = cx + ox;
+          const ny = cy + oy;
+          if (nx < 0 || nx >= gridW || ny < 0 || ny >= gridH) continue;
+          const cell = grid[ny * gridW + nx];
+          if (cell) result.push(...cell);
+        }
+      }
+      return result;
+    };
+
+    // Double density relaxation (using spatial hash)
     for (let i = 0; i < n; i++) {
       const pi = particles[i];
+      const neighbors = getNeighbors(pi);
       let density = 0;
       let nearDensity = 0;
 
-      // Find neighbors and compute density
-      for (let j = 0; j < n; j++) {
+      for (const j of neighbors) {
         if (i === j) continue;
         const pj = particles[j];
         const dx = pj.x - pi.x;
         const dy = pj.y - pi.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist >= INTERACTION_RADIUS) continue;
-
         const q = 1 - dist / INTERACTION_RADIUS;
         density += q * q;
         nearDensity += q * q * q;
       }
 
-      // Compute pressure
       const pressure = STIFFNESS * (density - REST_DENSITY);
       const nearPressure = STIFFNESS_NEAR * nearDensity;
 
-      // Apply displacement
-      for (let j = 0; j < n; j++) {
+      for (const j of neighbors) {
         if (i === j) continue;
         const pj = particles[j];
         const dx = pj.x - pi.x;
         const dy = pj.y - pi.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist >= INTERACTION_RADIUS || dist < 0.001) continue;
-
         const q = 1 - dist / INTERACTION_RADIUS;
         const force = (pressure * q + nearPressure * q * q) * DT * DT;
         const fx = (dx / dist) * force * 0.5;
@@ -255,16 +281,17 @@ function LiquidBottle({ value, onChange }) {
       }
     }
 
-    // Viscosity
+    // Viscosity (using spatial hash)
     for (let i = 0; i < n; i++) {
       const pi = particles[i];
-      for (let j = i + 1; j < n; j++) {
+      const neighbors = getNeighbors(pi);
+      for (const j of neighbors) {
+        if (j <= i) continue; // each pair once
         const pj = particles[j];
         const dx = pj.x - pi.x;
         const dy = pj.y - pi.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist >= INTERACTION_RADIUS) continue;
-
+        if (dist >= INTERACTION_RADIUS || dist < 0.001) continue;
         const q = 1 - dist / INTERACTION_RADIUS;
         const dvx = pi.vx - pj.vx;
         const dvy = pi.vy - pj.vy;
@@ -283,7 +310,7 @@ function LiquidBottle({ value, onChange }) {
 
     // Boundary collision (no bounce - velocity dies at wall)
     // Inset by the render blob radius so the DRAWN liquid stays inside the bottle
-    const RENDER_INSET = PARTICLE_RADIUS * 3;
+    const RENDER_INSET = PARTICLE_RADIUS * 2 + 5; // render radius + blur spread
     const bottomY = IMG_BOTTOM * H - RENDER_INSET;
     const topY = IMG_TOP * H;
     // Rounded bottom: elliptical curve rising toward the sides
@@ -336,43 +363,18 @@ function LiquidBottle({ value, onChange }) {
     }
   }
 
-  // Render with metaball effect
+  // Render: solid circles - the CSS "gooey" filter on the canvas element
+  // merges them into a smooth liquid surface entirely on the GPU
   function render(ctx, particles) {
-    const metaCanvas = metaCanvasRef.current;
-    const metaCtx = metaCanvas.getContext('2d');
-
-    // Clear
     ctx.clearRect(0, 0, W, H);
-    metaCtx.clearRect(0, 0, W, H);
-
-    // Draw particles as soft blobs on meta canvas (blob bigger than physics radius so they merge)
-    const blobR = PARTICLE_RADIUS * 3;
+    ctx.fillStyle = 'rgba(110, 180, 225, 0.9)';
+    const r = PARTICLE_RADIUS * 2;
     for (let i = 0; i < particles.length; i++) {
       const p = particles[i];
-      const gradient = metaCtx.createRadialGradient(p.x, p.y, 0, p.x, p.y, blobR);
-      gradient.addColorStop(0, 'rgba(60, 140, 200, 0.8)');
-      gradient.addColorStop(1, 'rgba(60, 140, 200, 0)');
-      metaCtx.fillStyle = gradient;
-      metaCtx.beginPath();
-      metaCtx.arc(p.x, p.y, blobR, 0, Math.PI * 2);
-      metaCtx.fill();
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+      ctx.fill();
     }
-
-    // Threshold the metaball canvas to create smooth water body
-    const imageData = metaCtx.getImageData(0, 0, W, H);
-    const data = imageData.data;
-    for (let i = 0; i < data.length; i += 4) {
-      if (data[i + 3] > 80) {
-        data[i] = 110;     // R
-        data[i + 1] = 180; // G
-        data[i + 2] = 225; // B
-        data[i + 3] = 130; // A (semi-transparent so back label shows through)
-      } else {
-        data[i + 3] = 0;
-      }
-    }
-    metaCtx.putImageData(imageData, 0, 0);
-    ctx.drawImage(metaCanvas, 0, 0);
   }
 
   // Animation loop
@@ -380,12 +382,6 @@ function LiquidBottle({ value, onChange }) {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-
-    // Create offscreen canvas for metaball
-    const metaCanvas = document.createElement('canvas');
-    metaCanvas.width = W;
-    metaCanvas.height = H;
-    metaCanvasRef.current = metaCanvas;
 
     const loop = () => {
       try {
@@ -499,8 +495,22 @@ function LiquidBottle({ value, onChange }) {
         onPointerCancel={handlePointerUp}
         style={{ touchAction: 'none', cursor: 'ns-resize' }}
       >
+        {/* SVG "gooey" filter definition - merges circles into smooth liquid on GPU */}
+        <svg width="0" height="0" style={{ position: 'absolute' }}>
+          <defs>
+            <filter id="goo">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur" />
+              <feColorMatrix
+                in="blur"
+                mode="matrix"
+                values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -9"
+                result="goo"
+              />
+            </filter>
+          </defs>
+        </svg>
         {/* Liquid animation behind the bottle artwork */}
-        <canvas ref={canvasRef} className="bottle-canvas" />
+        <canvas ref={canvasRef} className="bottle-canvas" style={{ filter: 'url(#goo)' }} />
         {/* Bottle artwork on top */}
         <img src="/bottle.png" alt="Glass bottle" className="bottle-png-overlay" draggable={false} />
       </div>
