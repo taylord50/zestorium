@@ -3,6 +3,7 @@ import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-mo
 import { CITRUS_DATA } from '../config/citrusData';
 
 import LiquidBottle from './LiquidBottle';
+import FruitPhysics from './FruitPhysics';
 
 const SPIRIT_OPTIONS = [
   { label: 'Vodka', sublabel: '80 proof', proof: 80 },
@@ -179,20 +180,14 @@ function Game({ onComplete }) {
             exit="exit"
             transition={{ duration: 0.25 }}
           >
-            <h2>How many {CITRUS_DATA[citrusType]?.label.toLowerCase()}s?</h2>
-            <FruitCounter
+            <h2>How many {CITRUS_DATA[citrusType]?.label.toLowerCase()}s do you have?</h2>
+            <FruitPhysics
               citrusType={citrusType}
-              value={fruitCount}
-              onChange={setFruitCount}
+              onConfirm={(count) => {
+                setFruitCount(count);
+                handleFruitConfirm();
+              }}
             />
-            <motion.button
-              className="game-confirm"
-              onClick={handleFruitConfirm}
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-            >
-              Show me what I can make →
-            </motion.button>
           </motion.div>
         )}
       </AnimatePresence>
