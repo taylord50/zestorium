@@ -1135,26 +1135,34 @@ input[type="range"]::-moz-range-thumb {
   justify-content: center;
 }
 
+.liquid-bottle-3d {
+  width: 100%;
+  height: 50vh;
+  border-radius: var(--radius);
+}
+
 .liquid-bottle-wrapper {
-  position: relative;
-  width: 160px;
-  max-height: 55vh;
-  aspect-ratio: 200 / 500;
+  display: none;
 }
 
-.bottle-liquid-svg {
+.bottle-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.bottle-png-overlay {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-}
-
-.bottle-svg-overlay {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  object-fit: contain;
   pointer-events: none;
+}
+
+.bottle-liquid-fill {
+  display: none;
 }
 
 .bottle-amount-text {
