@@ -230,45 +230,21 @@ function LiquidBottle({ value, onChange }) {
       metaCtx.fill();
     }
 
-    // Threshold the metaball canvas, then extract only the TOP SURFACE
+    // Threshold the metaball canvas to create smooth water body
     const imageData = metaCtx.getImageData(0, 0, W, H);
     const data = imageData.data;
-    const threshold = 80;
-
-    // Build a binary water mask
-    const mask = new Uint8Array(W * H);
-    for (let y = 0; y < H; y++) {
-      for (let x = 0; x < W; x++) {
-        const idx = (y * W + x) * 4;
-        mask[y * W + x] = data[idx + 3] > threshold ? 1 : 0;
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i + 3] > 80) {
+        data[i] = 100;     // R
+        data[i + 1] = 175; // G
+        data[i + 2] = 220; // B
+        data[i + 3] = 180; // A
+      } else {
+        data[i + 3] = 0;
       }
     }
-
-    // Output: only draw pixels that are water AND have air above them (top surface)
-    // Check a few pixels up to make the line thicker
-    const out = ctx.createImageData(W, H);
-    const outData = out.data;
-    const lineThickness = 3;
-
-    for (let y = 1; y < H; y++) {
-      for (let x = 0; x < W; x++) {
-        if (!mask[y * W + x]) continue;
-        // Is there air above within 1px?
-        if (mask[(y - 1) * W + x]) continue;
-        // This is a top-surface pixel; draw it and a few below for thickness
-        for (let t = 0; t < lineThickness; t++) {
-          const yy = y + t;
-          if (yy >= H) break;
-          const oIdx = (yy * W + x) * 4;
-          outData[oIdx] = 42;      // R
-          outData[oIdx + 1] = 42;  // G
-          outData[oIdx + 2] = 42;  // B
-          outData[oIdx + 3] = 255; // A
-        }
-      }
-    }
-
-    ctx.putImageData(out, 0, 0);
+    metaCtx.putImageData(imageData, 0, 0);
+    ctx.drawImage(metaCanvas, 0, 0);
   }
 
   // Animation loop
@@ -317,8 +293,8 @@ function LiquidBottle({ value, onChange }) {
       tiltX = -(e.gamma / 90);
     }
     tiltX = Math.max(-1, Math.min(1, tiltX));
-    // True gravity vector: rotate gravity by the tilt angle (reduced sensitivity)
-    const angle = tiltX * (Math.PI / 4); // up to 45 degrees
+    // True gravity vector: rotate gravity by the tilt angle (negated - was inverted)
+    const angle = -tiltX * (Math.PI / 4); // up to 45 degrees
     gravityRef.current = {
       x: Math.sin(angle) * GRAVITY_Y,
       y: Math.cos(angle) * GRAVITY_Y,
