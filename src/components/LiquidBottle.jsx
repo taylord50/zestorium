@@ -18,51 +18,102 @@ const DT = 1;
 const PARTICLE_RADIUS = 3.5;
 const VELOCITY_DAMPING = 0.97; // global energy bleed - makes it settle
 
-// Canvas size
-const W = 200;
+// Canvas size (matches bottle.png aspect ratio 1024:1536 = 2:3)
+const W = 280;
 const H = 420;
 
-// Bottle interior boundary (simplified from SVG, in canvas coords)
-// SVG was 1024x1536, canvas is 200x420
-const SX = 200 / 1024;
-const SY = 420 / 1536;
+// Bottle interior boundary traced from actual bottle.png pixels
+// Fractions of image dimensions: [leftFrac, rightFrac, yFrac]
+// Inset by glass thickness so liquid sits inside the glass walls
+const GLASS_INSET = 0.008; // small inset - the thick artwork lines hide edge jitter
+const BOTTLE_PROFILE = [
+  [0.4043, 0.5625, 0.1628],
+  [0.4043, 0.5625, 0.1790],
+  [0.4043, 0.5625, 0.1953],
+  [0.4043, 0.5635, 0.2116],
+  [0.4043, 0.5635, 0.2279],
+  [0.4033, 0.5635, 0.2441],
+  [0.4033, 0.5645, 0.2604],
+  [0.4033, 0.5645, 0.2767],
+  [0.4033, 0.5664, 0.2930],
+  [0.3965, 0.5771, 0.3092],
+  [0.3721, 0.6064, 0.3255],
+  [0.3398, 0.6396, 0.3418],
+  [0.3184, 0.6621, 0.3581],
+  [0.3037, 0.6758, 0.3743],
+  [0.2949, 0.6846, 0.3906],
+  [0.2900, 0.6885, 0.4069],
+  [0.2891, 0.6895, 0.4232],
+  [0.2891, 0.6895, 0.4395],
+  [0.2900, 0.6895, 0.4557],
+  [0.2900, 0.6895, 0.4720],
+  [0.2900, 0.6895, 0.4883],
+  [0.2910, 0.6904, 0.5046],
+  [0.2910, 0.6904, 0.5208],
+  [0.2920, 0.6904, 0.5371],
+  [0.2920, 0.6904, 0.5534],
+  [0.2920, 0.6904, 0.5697],
+  [0.2930, 0.6914, 0.5859],
+  [0.2930, 0.6914, 0.6022],
+  [0.2939, 0.6924, 0.6185],
+  [0.2939, 0.6924, 0.6348],
+  [0.2939, 0.6924, 0.6510],
+  [0.2949, 0.6924, 0.6673],
+  [0.2949, 0.6924, 0.6836],
+  [0.2949, 0.6924, 0.6999],
+  [0.2949, 0.6895, 0.7161],
+  [0.2959, 0.6895, 0.7324],
+  [0.2959, 0.6895, 0.7487],
+  [0.2959, 0.6895, 0.7650],
+  [0.2949, 0.6895, 0.7812],
+  [0.2949, 0.6895, 0.7975],
+  [0.2949, 0.6895, 0.8138],
+  [0.2949, 0.6904, 0.8301],
+  [0.2949, 0.6914, 0.8464],
+  [0.2949, 0.6924, 0.8626],
+  [0.2949, 0.6924, 0.8789],
+  [0.3047, 0.6846, 0.8952],
+];
+
+// Vertical range of the bottle interior (below neck opening, above base)
+const IMG_TOP = 0.163;   // liquid can rise into the neck up to here
+const IMG_BOTTOM = 0.89; // bottom of interior
 
 function getBottleEdgesAtY(y) {
-  // Convert canvas y back to SVG space for boundary lookup
-  const svgY = y / SY;
-  // Neck (svgY 326-474): narrow
-  if (svgY < 474) return { left: 454 * SX + 4, right: 570 * SX - 4 };
-  // Shoulder (474-665): widens
-  if (svgY < 665) {
-    const t = (svgY - 474) / (665 - 474);
-    const ease = t * t * (3 - 2 * t);
-    return {
-      left: (454 + (346 - 454) * ease) * SX + 4,
-      right: (570 + (678 - 570) * ease) * SX - 4,
-    };
+  const yFrac = y / H;
+  // Clamp to profile range
+  if (yFrac <= BOTTLE_PROFILE[0][2]) {
+    const p = BOTTLE_PROFILE[0];
+    return { left: (p[0] + GLASS_INSET) * W, right: (p[1] - GLASS_INSET) * W };
   }
-  // Body (665-1244): wide
-  if (svgY < 1244) return { left: 346 * SX + 4, right: 678 * SX - 4 };
-  // Base (1244-1380): narrows
-  const t = Math.min(1, (svgY - 1244) / 120);
-  return {
-    left: (346 + t * 60) * SX + 4,
-    right: (678 - t * 60) * SX - 4,
-  };
+  for (let i = 0; i < BOTTLE_PROFILE.length - 1; i++) {
+    const curr = BOTTLE_PROFILE[i];
+    const next = BOTTLE_PROFILE[i + 1];
+    if (yFrac >= curr[2] && yFrac <= next[2]) {
+      const t = (yFrac - curr[2]) / (next[2] - curr[2]);
+      return {
+        left: (curr[0] + (next[0] - curr[0]) * t + GLASS_INSET) * W,
+        right: (curr[1] + (next[1] - curr[1]) * t - GLASS_INSET) * W,
+      };
+    }
+  }
+  const last = BOTTLE_PROFILE[BOTTLE_PROFILE.length - 1];
+  return { left: (last[0] + GLASS_INSET) * W, right: (last[1] - GLASS_INSET) * W };
 }
 
 function createParticles(count, fillLevel) {
   const particles = [];
-  const bodyTop = 665 * SY;
-  const bodyBottom = 1300 * SY;
+  const bodyTop = IMG_TOP * H;
+  const bodyBottom = IMG_BOTTOM * H;
   const fillHeight = fillLevel * (bodyBottom - bodyTop);
   const startY = bodyBottom - fillHeight;
 
   for (let i = 0; i < count; i++) {
-    const edges = getBottleEdgesAtY(bodyBottom - (Math.random() * fillHeight));
+    const py = startY + Math.random() * fillHeight;
+    const edges = getBottleEdgesAtY(py);
     particles.push({
       x: edges.left + Math.random() * (edges.right - edges.left),
-      y: startY + Math.random() * fillHeight,
+      y: py,
       vx: 0,
       vy: 0,
       prevX: 0,
@@ -87,7 +138,7 @@ function LiquidBottle({ value, onChange }) {
 
   // Initialize particles
   useEffect(() => {
-    const target = Math.round(750 * value);
+    const target = Math.max(40, Math.round(750 * 1.35 * value));
     particlesRef.current = createParticles(target, value);
   }, []);
 
@@ -95,18 +146,18 @@ function LiquidBottle({ value, onChange }) {
   useEffect(() => {
     const particles = particlesRef.current;
     if (!particles) return;
-    const target = Math.max(40, Math.round(750 * value)); // floor of 40 particles
+    const target = Math.max(40, Math.round(750 * 1.35 * value)); // 1.35 particles per ml fills to mid-neck at 750
 
     if (particles.length < target) {
       // Add particles at the top of the current fluid
       const toAdd = target - particles.length;
       // Find current fluid surface (min y of existing particles, or bottom if empty)
-      let surfaceY = 1300 * SY;
+      let surfaceY = IMG_BOTTOM * H;
       for (const p of particles) {
         if (p.y < surfaceY) surfaceY = p.y;
       }
       for (let i = 0; i < toAdd; i++) {
-        const spawnY = Math.max(350 * SY, surfaceY - 10 - Math.random() * 20);
+        const spawnY = Math.max(IMG_TOP * H, surfaceY - 10 - Math.random() * 20);
         const edges = getBottleEdgesAtY(spawnY);
         particles.push({
           x: edges.left + Math.random() * (edges.right - edges.left),
@@ -231,17 +282,29 @@ function LiquidBottle({ value, onChange }) {
     }
 
     // Boundary collision (no bounce - velocity dies at wall)
-    const bottomY = 1300 * SY;
-    const topY = 350 * SY;
+    // Inset by the render blob radius so the DRAWN liquid stays inside the bottle
+    const RENDER_INSET = PARTICLE_RADIUS * 3;
+    const bottomY = IMG_BOTTOM * H - RENDER_INSET;
+    const topY = IMG_TOP * H;
+    // Rounded bottom: elliptical curve rising toward the sides
+    const bodyLeft = 0.295 * W;
+    const bodyRight = 0.692 * W;
+    const centerX = (bodyLeft + bodyRight) / 2;
+    const halfWidth = (bodyRight - bodyLeft) / 2;
+    const bottomCurveHeight = 0.025 * H;
+
     for (let i = 0; i < n; i++) {
       const p = particles[i];
-      // Top/bottom
-      if (p.y > bottomY) { p.y = bottomY; p.vy = 0; }
+      // Rounded bottom: max y depends on horizontal distance from center
+      const dx = Math.max(-1, Math.min(1, (p.x - centerX) / halfWidth));
+      const curveDrop = (1 - Math.sqrt(1 - dx * dx)) * bottomCurveHeight;
+      const localBottom = bottomY - curveDrop;
+      if (p.y > localBottom) { p.y = localBottom; p.vy = 0; }
       if (p.y < topY) { p.y = topY; p.vy = 0; }
-      // Left/right (bottle shape)
+      // Left/right (bottle shape) inset by render radius
       const edges = getBottleEdgesAtY(p.y);
-      if (p.x < edges.left) { p.x = edges.left; p.vx = 0; }
-      if (p.x > edges.right) { p.x = edges.right; p.vx = 0; }
+      if (p.x < edges.left + RENDER_INSET) { p.x = edges.left + RENDER_INSET; p.vx = 0; }
+      if (p.x > edges.right - RENDER_INSET) { p.x = edges.right - RENDER_INSET; p.vx = 0; }
     }
 
     // Update velocities from position change, with global damping
@@ -300,10 +363,10 @@ function LiquidBottle({ value, onChange }) {
     const data = imageData.data;
     for (let i = 0; i < data.length; i += 4) {
       if (data[i + 3] > 80) {
-        data[i] = 100;     // R
-        data[i + 1] = 175; // G
-        data[i + 2] = 220; // B
-        data[i + 3] = 180; // A
+        data[i] = 110;     // R
+        data[i + 1] = 180; // G
+        data[i + 2] = 225; // B
+        data[i + 3] = 130; // A (semi-transparent so back label shows through)
       } else {
         data[i + 3] = 0;
       }
@@ -436,7 +499,9 @@ function LiquidBottle({ value, onChange }) {
         onPointerCancel={handlePointerUp}
         style={{ touchAction: 'none', cursor: 'ns-resize' }}
       >
+        {/* Liquid animation behind the bottle artwork */}
         <canvas ref={canvasRef} className="bottle-canvas" />
+        {/* Bottle artwork on top */}
         <img src="/bottle.png" alt="Glass bottle" className="bottle-png-overlay" draggable={false} />
       </div>
       <p className="bottle-amount-text">~{mlAmount}ml</p>

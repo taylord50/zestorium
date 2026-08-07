@@ -1138,20 +1138,23 @@ input[type="range"]::-moz-range-thumb {
 .liquid-bottle-wrapper {
   position: relative;
   height: 42vh;
-  aspect-ratio: 200 / 420;
+  aspect-ratio: 1024 / 1536;
 }
 
 .liquid-bottle-3d {
   display: none;
 }
 
+/* Liquid simulation canvas */
 .bottle-canvas {
   position: absolute;
   inset: 0;
   width: 100% !important;
   height: 100% !important;
+  z-index: 2;
 }
 
+/* Layer 3: bottle artwork on top */
 .bottle-png-overlay {
   position: absolute;
   inset: 0;
@@ -1159,6 +1162,7 @@ input[type="range"]::-moz-range-thumb {
   height: 100%;
   object-fit: contain;
   pointer-events: none;
+  z-index: 3;
 }
 
 .bottle-amount-text {
