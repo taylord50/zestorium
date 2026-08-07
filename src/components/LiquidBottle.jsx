@@ -7,7 +7,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
  */
 
 // Simulation params
-const NUM_PARTICLES = 300;
+// Particle count scales with fill: 1 particle per ml (750 max)
 const REST_DENSITY = 3.0;
 const STIFFNESS = 0.2;
 const STIFFNESS_NEAR = 0.4;
@@ -87,15 +87,47 @@ function LiquidBottle({ value, onChange }) {
 
   // Initialize particles
   useEffect(() => {
-    particlesRef.current = createParticles(NUM_PARTICLES, value);
+    const target = Math.round(750 * value);
+    particlesRef.current = createParticles(target, value);
   }, []);
 
-  // Recreate particles when value changes significantly
-  const prevValue = useRef(value);
+  // Incrementally add/remove particles when value changes
   useEffect(() => {
-    if (Math.abs(value - prevValue.current) > 0.05) {
-      prevValue.current = value;
-      particlesRef.current = createParticles(NUM_PARTICLES, value);
+    const particles = particlesRef.current;
+    if (!particles) return;
+    const target = Math.round(750 * value);
+
+    if (particles.length < target) {
+      // Add particles at the top of the current fluid
+      const toAdd = target - particles.length;
+      // Find current fluid surface (min y of existing particles, or bottom if empty)
+      let surfaceY = 1300 * SY;
+      for (const p of particles) {
+        if (p.y < surfaceY) surfaceY = p.y;
+      }
+      for (let i = 0; i < toAdd; i++) {
+        const spawnY = Math.max(350 * SY, surfaceY - 10 - Math.random() * 20);
+        const edges = getBottleEdgesAtY(spawnY);
+        particles.push({
+          x: edges.left + Math.random() * (edges.right - edges.left),
+          y: spawnY,
+          vx: 0,
+          vy: 0,
+          prevX: 0,
+          prevY: 0,
+        });
+      }
+      // Wake up so new particles settle
+      sleepRef.current.sleeping = false;
+      sleepRef.current.calmFrames = 0;
+    } else if (particles.length > target) {
+      // Remove particles from the top (highest = smallest y)
+      const toRemove = particles.length - target;
+      particles.sort((a, b) => a.y - b.y);
+      particles.splice(0, toRemove);
+      // Wake up briefly so the surface settles
+      sleepRef.current.sleeping = false;
+      sleepRef.current.calmFrames = 0;
     }
   }, [value]);
 
@@ -371,12 +403,9 @@ function LiquidBottle({ value, onChange }) {
     const newLevel = Math.max(0.05, Math.min(1, 1 - relY));
 
     if (lastDragY.current !== null) {
-      const dy = e.clientY - lastDragY.current;
-      // Wake up and shake particles
+      // Just wake the sim - the add/remove of particles creates natural motion
       sleepRef.current.sleeping = false;
       sleepRef.current.calmFrames = 0;
-      gravityRef.current = { x: (Math.random() - 0.5) * 0.8, y: GRAVITY_Y + dy * 0.02 };
-      setTimeout(() => { gravityRef.current = { x: 0, y: GRAVITY_Y }; }, 200);
     }
     lastDragY.current = e.clientY;
     onChange(newLevel);
