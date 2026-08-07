@@ -9,13 +9,14 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 // Simulation params
 const NUM_PARTICLES = 120;
 const REST_DENSITY = 3.0;
-const STIFFNESS = 0.5;
-const STIFFNESS_NEAR = 1.0;
+const STIFFNESS = 0.35;
+const STIFFNESS_NEAR = 0.7;
 const INTERACTION_RADIUS = 25;
-const VISCOSITY = 0.02;
-const GRAVITY_Y = 0.4;
+const VISCOSITY = 0.15;
+const GRAVITY_Y = 0.25;
 const DT = 1;
 const PARTICLE_RADIUS = 8;
+const VELOCITY_DAMPING = 0.985; // global energy bleed - makes it settle
 
 // Canvas size
 const W = 200;
@@ -197,11 +198,14 @@ function LiquidBottle({ value, onChange }) {
       if (p.x > edges.right) { p.x = edges.right; p.vx *= -0.3; }
     }
 
-    // Update velocities from position change
+    // Update velocities from position change, with global damping
     for (let i = 0; i < n; i++) {
       const p = particles[i];
-      p.vx = (p.x - p.prevX) / DT;
-      p.vy = (p.y - p.prevY) / DT;
+      p.vx = ((p.x - p.prevX) / DT) * VELOCITY_DAMPING;
+      p.vy = ((p.y - p.prevY) / DT) * VELOCITY_DAMPING;
+      // Kill tiny jitter velocities completely
+      if (Math.abs(p.vx) < 0.02) p.vx = 0;
+      if (Math.abs(p.vy) < 0.02) p.vy = 0;
     }
   }
 
@@ -293,7 +297,12 @@ function LiquidBottle({ value, onChange }) {
       tiltX = -(e.gamma / 90);
     }
     tiltX = Math.max(-1, Math.min(1, tiltX));
-    gravityRef.current = { x: tiltX * 0.6, y: GRAVITY_Y };
+    // True gravity vector: rotate gravity by the tilt angle
+    const angle = tiltX * (Math.PI / 2); // up to 90 degrees
+    gravityRef.current = {
+      x: Math.sin(angle) * GRAVITY_Y * 2.5,
+      y: Math.cos(angle) * GRAVITY_Y,
+    };
   }, []);
 
   const enableGyro = async () => {
