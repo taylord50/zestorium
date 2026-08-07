@@ -16,7 +16,7 @@ const GRAVITY_Y = 0.2;
 const DT = 1;
 const PARTICLE_RADIUS = 5;
 const VELOCITY_DAMPING = 0.97;
-const PARTICLES_PER_ML = 0.6; // ~450 at 750ml
+const PARTICLES_PER_ML = 0.85; // ~638 at 750ml, fills to mid-neck
 
 // Canvas size (matches bottle.png aspect ratio 1024:1536 = 2:3)
 const W = 280;
