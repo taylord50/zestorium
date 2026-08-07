@@ -1137,7 +1137,7 @@ input[type="range"]::-moz-range-thumb {
 
 .liquid-bottle-wrapper {
   position: relative;
-  height: 55vh;
+  height: 42vh;
   aspect-ratio: 200 / 420;
 }
 
