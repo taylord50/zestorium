@@ -33,10 +33,10 @@ function LiquidBottle({ value, onChange }) {
     scene.background = new THREE.Color(0xFBF8F1);
     sceneRef.current = scene;
 
-    // Camera - slight angle looking down
-    const camera = new THREE.PerspectiveCamera(35, width / height, 0.1, 100);
-    camera.position.set(0, 1.5, 5);
-    camera.lookAt(0, 0.5, 0);
+    // Camera - fixed perspective, looking at bottle center
+    const camera = new THREE.PerspectiveCamera(25, width / height, 0.1, 100);
+    camera.position.set(0, 2, 7);
+    camera.lookAt(0, 1.5, 0);
     cameraRef.current = camera;
 
     // Renderer
@@ -225,9 +225,8 @@ function LiquidBottle({ value, onChange }) {
     // Spike disturbance based on tilt magnitude
     disturbanceRef.current = Math.min(1, disturbanceRef.current + Math.abs(tiltX) * 0.05);
 
-    // Keep bottle still, tilt the water instead
+    // Keep bottle still, water tilts only left-right
     if (waterRef.current) {
-      waterRef.current.rotation.x = -Math.PI / 2 + tiltZ * 0.3;
       waterRef.current.rotation.y = tiltX * 0.3;
     }
   }, []);
