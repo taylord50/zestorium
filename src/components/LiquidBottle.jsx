@@ -7,16 +7,16 @@ import { useState, useRef, useEffect, useCallback } from 'react';
  */
 
 // Simulation params
-const NUM_PARTICLES = 180;
+const NUM_PARTICLES = 300;
 const REST_DENSITY = 3.0;
-const STIFFNESS = 0.35;
-const STIFFNESS_NEAR = 0.7;
-const INTERACTION_RADIUS = 25;
-const VISCOSITY = 0.15;
-const GRAVITY_Y = 0.25;
+const STIFFNESS = 0.2;
+const STIFFNESS_NEAR = 0.4;
+const INTERACTION_RADIUS = 14;
+const VISCOSITY = 0.2;
+const GRAVITY_Y = 0.2;
 const DT = 1;
-const PARTICLE_RADIUS = 6;
-const VELOCITY_DAMPING = 0.985; // global energy bleed - makes it settle
+const PARTICLE_RADIUS = 3.5;
+const VELOCITY_DAMPING = 0.97; // global energy bleed - makes it settle
 
 // Canvas size
 const W = 200;
@@ -108,7 +108,7 @@ function LiquidBottle({ value, onChange }) {
     const sleep = sleepRef.current;
 
     // Wake up if gravity changed (tilt) meaningfully
-    if (Math.abs(gx - sleep.lastGx) > 0.02) {
+    if (Math.abs(gx - sleep.lastGx) > 0.05) {
       sleep.sleeping = false;
       sleep.calmFrames = 0;
     }
@@ -198,18 +198,18 @@ function LiquidBottle({ value, onChange }) {
       }
     }
 
-    // Boundary collision
+    // Boundary collision (no bounce - velocity dies at wall)
     const bottomY = 1300 * SY;
     const topY = 350 * SY;
     for (let i = 0; i < n; i++) {
       const p = particles[i];
       // Top/bottom
-      if (p.y > bottomY) { p.y = bottomY; p.vy *= -0.3; }
-      if (p.y < topY) { p.y = topY; p.vy *= -0.3; }
+      if (p.y > bottomY) { p.y = bottomY; p.vy = 0; }
+      if (p.y < topY) { p.y = topY; p.vy = 0; }
       // Left/right (bottle shape)
       const edges = getBottleEdgesAtY(p.y);
-      if (p.x < edges.left) { p.x = edges.left; p.vx *= -0.3; }
-      if (p.x > edges.right) { p.x = edges.right; p.vx *= -0.3; }
+      if (p.x < edges.left) { p.x = edges.left; p.vx = 0; }
+      if (p.x > edges.right) { p.x = edges.right; p.vx = 0; }
     }
 
     // Update velocities from position change, with global damping
@@ -250,15 +250,16 @@ function LiquidBottle({ value, onChange }) {
     ctx.clearRect(0, 0, W, H);
     metaCtx.clearRect(0, 0, W, H);
 
-    // Draw particles as soft blobs on meta canvas
+    // Draw particles as soft blobs on meta canvas (blob bigger than physics radius so they merge)
+    const blobR = PARTICLE_RADIUS * 3;
     for (let i = 0; i < particles.length; i++) {
       const p = particles[i];
-      const gradient = metaCtx.createRadialGradient(p.x, p.y, 0, p.x, p.y, PARTICLE_RADIUS);
+      const gradient = metaCtx.createRadialGradient(p.x, p.y, 0, p.x, p.y, blobR);
       gradient.addColorStop(0, 'rgba(60, 140, 200, 0.8)');
       gradient.addColorStop(1, 'rgba(60, 140, 200, 0)');
       metaCtx.fillStyle = gradient;
       metaCtx.beginPath();
-      metaCtx.arc(p.x, p.y, PARTICLE_RADIUS, 0, Math.PI * 2);
+      metaCtx.arc(p.x, p.y, blobR, 0, Math.PI * 2);
       metaCtx.fill();
     }
 
@@ -325,6 +326,8 @@ function LiquidBottle({ value, onChange }) {
       tiltX = -(e.gamma / 90);
     }
     tiltX = Math.max(-1, Math.min(1, tiltX));
+    // Deadband: ignore tiny tilts (gyro sensor noise when phone is on a table)
+    if (Math.abs(tiltX) < 0.06) tiltX = 0;
     // True gravity vector: rotate gravity by the tilt angle (negated - was inverted)
     const angle = -tiltX * (Math.PI / 4); // up to 45 degrees
     gravityRef.current = {
