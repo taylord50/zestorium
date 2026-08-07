@@ -1135,13 +1135,13 @@ input[type="range"]::-moz-range-thumb {
   justify-content: center;
 }
 
-.liquid-bottle-3d {
-  width: 100%;
-  height: 50vh;
-  border-radius: var(--radius);
+.liquid-bottle-wrapper {
+  position: relative;
+  height: 55vh;
+  aspect-ratio: 200 / 420;
 }
 
-.liquid-bottle-wrapper {
+.liquid-bottle-3d {
   display: none;
 }
 
@@ -1159,10 +1159,6 @@ input[type="range"]::-moz-range-thumb {
   height: 100%;
   object-fit: contain;
   pointer-events: none;
-}
-
-.bottle-liquid-fill {
-  display: none;
 }
 
 .bottle-amount-text {
