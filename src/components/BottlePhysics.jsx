@@ -58,13 +58,13 @@ const BOTTLE_VERTICES = [
 ];
 
 const DEFAULT_PARAMS = {
-  gravity: 1.5,
-  friction: 0.8,
-  frictionStatic: 1.5,
-  frictionAir: 0.01,
-  restitution: 0.15,
-  density: 0.004,
-  gravityScale: 2.0,
+  gravity: 2.0,
+  friction: 0.95,
+  frictionStatic: 50,
+  frictionAir: 0.005,
+  restitution: 0.1,
+  density: 0.005,
+  gravityScale: 1.5,
 };
 
 function BottlePhysics() {
@@ -121,8 +121,8 @@ function BottlePhysics() {
 
     const bottle = Matter.Bodies.fromVertices(w / 2, -renderH * 0.5, [vertices], {
       restitution: p.restitution,
-      friction: 10, // extremely high friction — bottle pivots, doesn't slide
-      frictionStatic: 10,
+      friction: p.friction,
+      frictionStatic: p.frictionStatic,
       frictionAir: 0.002,
       density: p.density,
       render: { visible: false },
@@ -137,28 +137,13 @@ function BottlePhysics() {
     const wallThickness = 60;
     const walls = [
       // Floor
-      Matter.Bodies.rectangle(w / 2, floorY + wallThickness / 2, w * 3, wallThickness, { isStatic: true, friction: 10, frictionStatic: 10 }),
-      // Left wall — positioned so inner face is at x=0
+      Matter.Bodies.rectangle(w / 2, floorY + wallThickness / 2, w * 3, wallThickness, { isStatic: true, friction: p.friction, frictionStatic: p.frictionStatic }),
+      // Left wall — inner face at x=0
       Matter.Bodies.rectangle(-wallThickness / 2, h / 2, wallThickness, h * 3, { isStatic: true, friction: 0.5 }),
-      // Right wall — positioned so inner face is at x=w
+      // Right wall — inner face at x=w
       Matter.Bodies.rectangle(w + wallThickness / 2, h / 2, wallThickness, h * 3, { isStatic: true, friction: 0.5 }),
     ];
     Matter.Composite.add(engine.world, walls);
-
-    // Reduce friction once bottle tilts past 45 degrees (so it can slide after tipping)
-    const frictionCheck = setInterval(() => {
-      const b = bottleBodyRef.current;
-      if (!b) return;
-      const angle = Math.abs(b.angle % (Math.PI * 2));
-      const tiltDeg = (angle > Math.PI ? Math.PI * 2 - angle : angle) * (180 / Math.PI);
-      if (tiltDeg > 45) {
-        b.friction = 0.3;
-        b.frictionStatic = 0.5;
-      } else if (landedRef.current) {
-        b.friction = 10;
-        b.frictionStatic = 10;
-      }
-    }, 50);
 
     // Disable gyro until bottle lands
     const landCheck = setInterval(() => {
@@ -171,7 +156,6 @@ function BottlePhysics() {
 
     return () => {
       clearInterval(landCheck);
-      clearInterval(frictionCheck);
       Matter.Engine.clear(engine);
       if (renderLoopRef.current) cancelAnimationFrame(renderLoopRef.current);
     };
@@ -243,16 +227,6 @@ function BottlePhysics() {
     const loop = () => {
       const engine = engineRef.current;
       if (!engine) { renderLoopRef.current = requestAnimationFrame(loop); return; }
-
-      // Prevent horizontal sliding while upright — only zero X velocity, allow rotation
-      const b = bottleBodyRef.current;
-      if (b && landedRef.current) {
-        const angle = Math.abs(b.angle % (Math.PI * 2));
-        const tiltDeg = (angle > Math.PI ? Math.PI * 2 - angle : angle) * (180 / Math.PI);
-        if (tiltDeg < 45) {
-          Matter.Body.setVelocity(b, { x: 0, y: b.velocity.y });
-        }
-      }
 
       Matter.Engine.update(engine, 1000 / 60);
 
