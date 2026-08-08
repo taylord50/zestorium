@@ -65,8 +65,8 @@ function BottlePhysics() {
     setDims({ w: rect.width, h: rect.height });
   }, []);
 
-  // Bottle render size: exactly 42vh tall, 2:3 aspect ratio (matches old static bottle)
-  const renderH = window.innerHeight * 0.42;
+  // Bottle render size: fill the container (which is 42vh via CSS)
+  const renderH = dims.h * 0.9;
   const renderW = renderH * (2 / 3);
 
   // Initialize physics
@@ -206,22 +206,19 @@ function BottlePhysics() {
   }, [dims]);
 
   return (
-    <div
-      ref={containerRef}
-      onTouchStart={() => { if (!gyroEnabledRef.current) enableGyro(); }}
-      onClick={() => { if (!gyroEnabledRef.current) enableGyro(); }}
-      style={{
-        width: '100%',
-        height: '100%',
-        position: 'relative',
-        touchAction: 'none',
-        overflow: 'hidden',
-      }}
-    >
-      <canvas
-        ref={canvasRef}
-        style={{ width: '100%', height: '100%', display: 'block' }}
-      />
+    <div className="liquid-bottle-container">
+      <div
+        className="liquid-bottle-wrapper"
+        ref={containerRef}
+        onTouchStart={() => { if (!gyroEnabledRef.current) enableGyro(); }}
+        onClick={() => { if (!gyroEnabledRef.current) enableGyro(); }}
+        style={{ touchAction: 'none' }}
+      >
+        <canvas
+          ref={canvasRef}
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+        />
+      </div>
     </div>
   );
 }

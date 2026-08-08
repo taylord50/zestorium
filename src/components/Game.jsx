@@ -97,7 +97,7 @@ function Game({ onComplete, onSkipToCalculator }) {
           >
             <p className="intro-tagline">Three ingredients. One week.<br />Your own limoncello.</p>
             <div className="intro-bottle-wrap">
-              <LiquidBottle value={0.8} onChange={() => {}} readOnly liquidColor="rgba(255, 248, 180, 0.85)" bottleImage="/bottle-nolabel.png" />
+              <BottlePhysics />
             </div>
             <motion.button
               className="game-confirm"
