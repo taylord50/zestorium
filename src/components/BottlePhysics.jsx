@@ -13,11 +13,11 @@ const BOTTLE_IMG = '/bottle-nolabel.png';
 // Coordinates as fractions from center (-0.5 to 0.5 range)
 // Bottom is flattened for stability
 const BOTTLE_VERTICES = [
-  // Top of neck
-  { x: -0.084, y: -0.44 },
-  { x: 0.063, y: -0.44 },
+  // Top of neck — lowered to split the cork curve
+  { x: -0.084, y: -0.40 },
+  { x: 0.063, y: -0.40 },
   // Neck
-  { x: 0.068, y: -0.40 },
+  { x: 0.068, y: -0.38 },
   { x: 0.078, y: -0.38 },
   { x: 0.072, y: -0.30 },
   { x: 0.073, y: -0.23 },
@@ -53,9 +53,8 @@ const BOTTLE_VERTICES = [
   // Neck left
   { x: -0.092, y: -0.23 },
   { x: -0.091, y: -0.30 },
-  { x: -0.088, y: -0.38 },
-  { x: -0.089, y: -0.40 },
-  { x: -0.084, y: -0.44 },
+  { x: -0.089, y: -0.38 },
+  { x: -0.084, y: -0.40 },
 ];
 
 const DEFAULT_PARAMS = {
@@ -245,14 +244,13 @@ function BottlePhysics() {
       const engine = engineRef.current;
       if (!engine) { renderLoopRef.current = requestAnimationFrame(loop); return; }
 
-      // Lock bottle's base X position while upright (< 45 degrees) to prevent sliding
+      // Prevent horizontal sliding while upright — only zero X velocity, allow rotation
       const b = bottleBodyRef.current;
       if (b && landedRef.current) {
         const angle = Math.abs(b.angle % (Math.PI * 2));
         const tiltDeg = (angle > Math.PI ? Math.PI * 2 - angle : angle) * (180 / Math.PI);
         if (tiltDeg < 45) {
           Matter.Body.setVelocity(b, { x: 0, y: b.velocity.y });
-          Matter.Body.setPosition(b, { x: w / 2, y: b.position.y });
         }
       }
 
