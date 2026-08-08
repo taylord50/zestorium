@@ -79,6 +79,9 @@ function Game({ onComplete, onSkipToCalculator }) {
 
   return (
     <div className="game">
+      {step > 0 && (
+        <button className="game-back" onClick={() => setStep(step - 1)}>← Back</button>
+      )}
       <AnimatePresence mode="wait">
         {/* Step 0: Intro / Hook */}
         {step === 0 && (
