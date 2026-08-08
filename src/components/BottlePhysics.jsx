@@ -492,15 +492,25 @@ function BottlePhysics() {
     const dpr = window.devicePixelRatio || 1;
     canvas.width = w * dpr;
     canvas.height = h * dpr;
-    fluidCanvas.width = w * dpr;
-    fluidCanvas.height = h * dpr;
     const ctx = canvas.getContext('2d');
-    const fctx = fluidCanvas.getContext('2d');
     ctx.scale(dpr, dpr);
+
+    // Fluid canvas: SMALL, bottle-sized (+ padding for goo blur spread).
+    // It gets positioned over the bottle with a CSS transform (GPU-cheap),
+    // so the goo filter only processes this small area — same cost as the
+    // vodka screen instead of a full-screen blur.
+    const PAD = 30;
+    const fcw = Math.ceil(renderW + PAD * 2);
+    const fch = Math.ceil(renderH + PAD * 2);
+    fluidCanvas.width = fcw * dpr;
+    fluidCanvas.height = fch * dpr;
+    fluidCanvas.style.width = `${fcw}px`;
+    fluidCanvas.style.height = `${fch}px`;
+    const fctx = fluidCanvas.getContext('2d');
     fctx.scale(dpr, dpr);
 
-    // Scale factor from fluid sim space (280x420) to render size
-    const fs = renderW / FW;
+    const off = imgOffsetRef.current;
+    let fluidDirty = true;
 
     const loop = () => {
       const engine = engineRef.current;
@@ -509,48 +519,54 @@ function BottlePhysics() {
       Matter.Engine.update(engine, 1000 / 60);
 
       ctx.clearRect(0, 0, w, h);
-      fctx.clearRect(0, 0, w, h);
 
       const bottle = bottleBodyRef.current;
       const img = bottleImgRef.current;
       if (bottle && img) {
         const pos = bottle.position;
         const angle = bottle.angle;
-        const off = imgOffsetRef.current;
+        const offNow = imgOffsetRef.current;
 
         // --- Fluid: simulate in bottle-local frame with rotated gravity ---
         const particles = fluidRef.current;
+        const sleep = fluidSleepRef.current;
         if (particles) {
           const g = engine.gravity;
           const cosA = Math.cos(angle);
           const sinA = Math.sin(angle);
-          // world gravity rotated into bottle frame, scaled to fluid units
           const glx = (g.x * cosA + g.y * sinA) * FLUID_GRAVITY;
           const gly = (-g.x * sinA + g.y * cosA) * FLUID_GRAVITY;
-          simulateFluid(particles, glx, gly, fluidSleepRef.current);
+          const wasSleeping = sleep.sleeping;
+          simulateFluid(particles, glx, gly, sleep);
+          if (!sleep.sleeping || wasSleeping !== sleep.sleeping) fluidDirty = true;
 
-          // Draw fluid on its own (goo-filtered) canvas in world space
-          fctx.save();
-          fctx.translate(pos.x, pos.y);
-          fctx.rotate(angle);
-          fctx.fillStyle = 'rgba(255, 244, 170, 0.9)';
-          const r = PARTICLE_RADIUS * 2 * fs;
-          for (const fp of particles) {
-            // fluid-space -> definition-space -> body frame
-            const px = off.x + (fp.x / FW - 0.5) * renderW;
-            const py = off.y + (fp.y / FH - 0.5) * renderH;
-            fctx.beginPath();
-            fctx.arc(px, py, r, 0, Math.PI * 2);
-            fctx.fill();
+          // Only redraw fluid pixels when the sim actually moved
+          if (fluidDirty) {
+            fctx.clearRect(0, 0, fcw, fch);
+            fctx.fillStyle = 'rgba(255, 244, 170, 0.9)';
+            const r = PARTICLE_RADIUS * 2 * (renderW / FW);
+            const cx = fcw / 2 + offNow.x;
+            const cy = fch / 2 + offNow.y;
+            for (const fp of particles) {
+              const px = cx + (fp.x / FW - 0.5) * renderW;
+              const py = cy + (fp.y / FH - 0.5) * renderH;
+              fctx.beginPath();
+              fctx.arc(px, py, r, 0, Math.PI * 2);
+              fctx.fill();
+            }
+            fluidDirty = !sleep.sleeping ? true : false;
           }
-          fctx.restore();
+
+          // Position the small canvas over the bottle (GPU transform, no redraw)
+          fluidCanvas.style.transform =
+            `translate(${pos.x - fcw / 2}px, ${pos.y - fch / 2}px) rotate(${angle}rad)`;
         }
 
         // --- Bottle artwork on the top canvas ---
         ctx.save();
         ctx.translate(pos.x, pos.y);
         ctx.rotate(angle);
-        ctx.drawImage(img, off.x - renderW / 2, off.y - renderH / 2, renderW, renderH);
+        ctx.drawImage(img, offNow.x - renderW / 2, offNow.y - renderH / 2, renderW, renderH);
         ctx.restore();
 
         // Debug: red dot at center of mass
@@ -591,18 +607,19 @@ function BottlePhysics() {
             </filter>
           </defs>
         </svg>
-        {/* Fluid canvas (goo-filtered), under the bottle canvas */}
+        {/* Fluid canvas: small bottle-sized surface, positioned over the
+            bottle each frame via CSS transform. Goo filter only processes
+            this small area — same cost profile as the vodka screen. */}
         <canvas
           ref={fluidCanvasRef}
           style={{
             position: 'fixed',
             top: 0,
             left: 0,
-            width: '100vw',
-            height: '100dvh',
             pointerEvents: 'none',
             zIndex: 1,
             filter: 'url(#bottle-goo)',
+            willChange: 'transform',
           }}
         />
         {/* Bottle + physics canvas on top */}
