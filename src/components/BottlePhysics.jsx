@@ -134,9 +134,9 @@ function BottlePhysics() {
       const cX = defMinX - (bottle.bounds.min.x - bottle.position.x);
       const cY = defMinY - (bottle.bounds.min.y - bottle.position.y);
 
-      // Move center of mass to the base of the neck (y = -0.17 in definition
-      // space) — top-heavy bottle tips over much more easily.
-      const COM_Y = -0.17 * renderH; // definition-space target
+      // Move center of mass to where the body starts necking down
+      // (top of the full-width body, y = -0.02 in definition space).
+      const COM_Y = -0.02 * renderH; // definition-space target
       Matter.Body.setCentre(bottle, { x: 0 - cX, y: COM_Y - cY }, true);
 
       // Image center (definition origin) relative to new body position:
