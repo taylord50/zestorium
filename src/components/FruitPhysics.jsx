@@ -9,7 +9,7 @@ import { CITRUS_DATA } from '../config/citrusData';
  */
 
 const CANVAS_W = 320;
-const CANVAS_H = 384;
+const CANVAS_H = 270;
 
 // Fruit image data: bounding boxes for cropping the PNG sprites
 const FRUIT_DATA = {
@@ -324,7 +324,6 @@ function FruitPhysics({ citrusType, onConfirm }) {
       <p className="fruit-count">
         {count} {citrus.label.toLowerCase()}{count !== 1 ? 's' : ''}
       </p>
-      <p className="fruit-hint">Tap to add. Drag to move. Fling off edge to remove.</p>
       <button className="game-confirm" onClick={() => onConfirm(count)}>
         That's how many I have →
       </button>
