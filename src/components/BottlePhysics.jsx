@@ -9,6 +9,7 @@ import Matter from 'matter-js';
  */
 
 const BOTTLE_IMG = '/bottle-nolabel.png';
+const BOTTLE_NOCORK_IMG = '/bottle-nocork.png';
 const CORK_IMG = '/cork.png';
 
 // Cork sprite content region within cork.png (pixel-traced)
@@ -351,11 +352,15 @@ function BottlePhysics() {
   const escapedRef = useRef([]); // world-space free-fall droplets
   const [dims, setDims] = useState({ w: 320, h: 560 });
 
-  // Load bottle + cork images
+  // Load bottle (corked + corkless) and cork images
+  const bottleNoCorkImgRef = useRef(null);
   useEffect(() => {
     const img = new Image();
     img.src = BOTTLE_IMG;
     img.onload = () => { bottleImgRef.current = img; };
+    const noCork = new Image();
+    noCork.src = BOTTLE_NOCORK_IMG;
+    noCork.onload = () => { bottleNoCorkImgRef.current = noCork; };
     const cork = new Image();
     cork.src = CORK_IMG;
     cork.onload = () => { corkImgRef.current = cork; };
@@ -682,11 +687,12 @@ function BottlePhysics() {
           }
         }
 
-        // --- Bottle artwork on the top canvas ---
+        // --- Bottle artwork on the top canvas (corkless version after pop) ---
+        const bottleArt = (uncorkedRef.current && bottleNoCorkImgRef.current) ? bottleNoCorkImgRef.current : img;
         ctx.save();
         ctx.translate(pos.x, pos.y);
         ctx.rotate(angle);
-        ctx.drawImage(img, offNow.x - renderW / 2, offNow.y - renderH / 2, renderW, renderH);
+        ctx.drawImage(bottleArt, offNow.x - renderW / 2, offNow.y - renderH / 2, renderW, renderH);
         ctx.restore();
 
         // --- Popped cork ---
