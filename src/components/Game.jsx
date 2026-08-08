@@ -146,22 +146,24 @@ function Game({ onComplete, onSkipToCalculator }) {
           </motion.div>
         )}
 
-        {/* Step 2: Fruit Physics */}
+        {/* Step 2: Fruit Physics — full screen with UI overlaid */}
         {step === 2 && (
           <motion.div
             key="fruits"
-            className="game-step"
+            className="game-step game-step-fullscreen"
             variants={pageVariants}
             initial="enter"
             animate="center"
             exit="exit"
             transition={{ duration: 0.25 }}
           >
-            <h2>How many {CITRUS_DATA[citrusType]?.label.toLowerCase()}s do you have?</h2>
             <FruitPhysics
               citrusType={citrusType}
               onConfirm={handleFruitConfirm}
             />
+            <div className="fruit-overlay-header">
+              <h2>How many {CITRUS_DATA[citrusType]?.label.toLowerCase()}s do you have?</h2>
+            </div>
           </motion.div>
         )}
 

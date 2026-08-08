@@ -1407,53 +1407,93 @@ input[type="range"]::-moz-range-thumb {
   text-decoration: underline;
 }
 
-/* Fruit Physics */
-.fruit-physics-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+/* Fruit Physics — Full Screen */
+.game-step-fullscreen {
+  position: relative;
   width: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 
-.fruit-physics-canvas-wrap {
+.fruit-physics-fullscreen {
+  position: absolute;
+  inset: 0;
   width: 100%;
-  aspect-ratio: 320 / 270;
-  position: relative;
+  height: 100%;
   overflow: hidden;
-  background: var(--color-cream);
-  border-bottom: 3px solid #222;
 }
 
 .fruit-physics-canvas {
   width: 100%;
   height: 100%;
+  display: block;
 }
 
-.fruit-count {
+.fruit-overlay-header {
+  position: absolute;
+  top: 0.5rem;
+  left: 0;
+  right: 0;
+  text-align: center;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.fruit-overlay-header h2 {
+  font-family: var(--font-serif);
+  font-size: min(1.3rem, 5vw);
+  font-weight: 400;
+  color: var(--color-charcoal);
+  white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(255,255,255,0.8);
+}
+
+.fruit-physics-ui {
+  position: absolute;
+  bottom: 1.5rem;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.fruit-physics-ui .fruit-count {
   font-size: 1.25rem;
   font-weight: 700;
   color: var(--color-green);
-  margin-top: 0.5rem;
+  margin-bottom: 0.4rem;
+  text-shadow: 0 1px 3px rgba(255,255,255,0.8);
+}
+
+.fruit-physics-ui .game-confirm {
+  pointer-events: auto;
 }
 
 .fruit-tap-hint {
   position: absolute;
-  top: 50%;
+  top: 45%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 500;
   color: var(--color-muted);
   pointer-events: none;
   text-align: center;
   font-family: var(--font-sans);
-  z-index: 0;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.4s ease;
 }
 
-.fruit-tap-hint-subtle {
-  opacity: 0.6;
-  font-size: 0.85rem;
-  top: 30%;
+.fruit-tap-hint.visible {
+  opacity: 1;
+}
+
+.fruit-tap-hint.subtle {
+  opacity: 0.5;
 }
 
 /* Swipe hint animation */

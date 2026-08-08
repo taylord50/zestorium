@@ -9,7 +9,7 @@ import { CITRUS_DATA } from '../config/citrusData';
  */
 
 const CANVAS_W = 320;
-const CANVAS_H = 270;
+const CANVAS_H = 560;
 
 // Fruit image data: bounding boxes for cropping the PNG sprites
 const FRUIT_DATA = {
@@ -308,31 +308,28 @@ function FruitPhysics({ citrusType, onConfirm }) {
   };
 
   return (
-    <div className="fruit-physics-container">
-      <div
-        className="fruit-physics-canvas-wrap"
-        ref={containerRef}
-        onTouchStart={() => { if (!gyroEnabledRef.current) enableGyro(); }}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
-        style={{ touchAction: 'none' }}
-      >
-        <canvas ref={canvasRef} className="fruit-physics-canvas" />
-        {count === 0 && (
-          <div className="fruit-tap-hint">Tap to add {citrus.label.toLowerCase()}s</div>
-        )}
-        {count > 0 && count < 3 && (
-          <div className="fruit-tap-hint fruit-tap-hint-subtle">Tap to add more</div>
-        )}
+    <div
+      className="fruit-physics-fullscreen"
+      ref={containerRef}
+      onTouchStart={() => { if (!gyroEnabledRef.current) enableGyro(); }}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      style={{ touchAction: 'none' }}
+    >
+      <canvas ref={canvasRef} className="fruit-physics-canvas" />
+      <div className={`fruit-tap-hint ${count === 0 ? 'visible' : count < 3 ? 'visible subtle' : ''}`}>
+        {count === 0 ? `Tap to add ${citrus.label.toLowerCase()}s` : 'Tap to add more'}
       </div>
-      <p className="fruit-count">
-        {count} {citrus.label.toLowerCase()}{count !== 1 ? 's' : ''}
-      </p>
-      <button className="game-confirm" onClick={() => onConfirm(count)}>
-        Now let's add vodka!
-      </button>
+      <div className="fruit-physics-ui">
+        <p className="fruit-count">
+          {count} {citrus.label.toLowerCase()}{count !== 1 ? 's' : ''}
+        </p>
+        <button className="game-confirm" onClick={() => onConfirm(count)}>
+          Now let's add vodka!
+        </button>
+      </div>
     </div>
   );
 }
