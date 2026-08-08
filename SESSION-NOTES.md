@@ -1,6 +1,6 @@
 # SESSION NOTES — Zestorium
 
-## Status: Game flow on staging, tuned fruit physics
+## Status: Game flow on staging, fruit physics tuned, REVERTED viewport work
 
 | Item | Value |
 |------|-------|
@@ -8,22 +8,45 @@
 | Staging | auto-deploys from `staging` branch on Vercel |
 | Repo | github.com/taylord50/zestorium |
 | Stack | React + Vite + Framer Motion + Matter.js |
+| Current commit | bd3605f |
 | Dev server | `npx --registry https://registry.npmjs.org vite --host` |
 | Build | `npx --registry https://registry.npmjs.org vite build` |
-| npm auth issue | Must use `--registry https://registry.npmjs.org` flag always |
 
-## What's on Staging (current)
+## What's Live on Staging
 - Full game flow: citrus → spirit → bottle → fruit physics → calculator
-- FruitPhysics uses Matter.js with tuned params (same engine as debug)
-- Real fruit PNG images rendered on canvas (bbox-cropped sprites)
-- Per-fruit size variation + deformation (lemon/lime: 10%/15%, orange/grapefruit: 10%/5%)
-- Retina canvas (devicePixelRatio scaling) for crisp rendering on mobile
-- Gyro/tilt: auto-detects existing permission on mount (probe listener)
-- Gyro fallback: touchstart triggers requestPermission on first visit
-- FruitPhysicsDebug commented out in App.jsx (uncomment debugFruit to restore)
-- Debug text showing gyro status still visible on bottle screen (remove before prod)
+- Real fruit PNG images on citrus selection (proportional sizes)
+- FruitPhysics uses Matter.js with tuned params
+- Retina canvas (devicePixelRatio) for crisp mobile rendering
+- Gyro/tilt: auto-probes on mount, falls back to touchstart for permission
+- Per-fruit size variation + deformation
+- FruitPhysicsDebug commented out (uncomment debugFruit in App.jsx to restore)
+- Debug text showing gyro status on bottle screen (remove before prod)
 
-## Tuned Physics Params (from debug session)
+## NEXT SESSION: Mobile Safe Zone (UNRESOLVED)
+
+**Problem:** iOS Safari has a floating transparent address bar covering ~15% of the bottom of the screen. Content (buttons, text, fruit count) gets hidden behind it.
+
+**What needs to happen:**
+- All content on every screen must stay above the toolbar
+- Need a fixed bottom dead zone (~15% of viewport) where nothing renders
+- All layout must use RELATIVE sizing (no fixed px heights) so content flexes to fit the available 85%
+- The canvas aspect ratio must stay correct (not squashed)
+- Need to test on Chrome iOS and Android too
+
+**What was tried and failed (reverted):**
+- `padding-bottom: 15dvh` on #root — children ignored it
+- `height: 85dvh` on #root with overflow hidden — content still overflowed
+- Removing all fixed heights and making everything flex — broke the layout badly
+- Multiple attempts at the flex chain approach didn't constrain children
+
+**Approach for next session:**
+- Consider using a wrapper div with `max-height: 85dvh` and `overflow: hidden`
+- Or set explicit `height: 85dvh` on the `.app-game` class directly
+- The fruit physics canvas needs to maintain its aspect ratio while fitting
+- May need to use `clamp()` or `min()` for element sizes
+- Keep a red dotted debug line at the boundary for visual verification
+
+## Tuned Physics Params
 | Param | Value |
 |-------|-------|
 | Gravity | 1.0 |
@@ -36,27 +59,13 @@
 | Fruit Scale | 0.12 |
 | Fling Speed | 0.05 |
 
-## Gyro Permission Strategy (iOS Safari)
-1. On mount: add probe listener for deviceorientation events
-2. If events arrive within 500ms → permission already granted, activate immediately
-3. If no events → wait for user touch gesture (touchstart/click)
-4. On touch: call DeviceOrientationEvent.requestPermission() → Safari dialog
-5. Once granted, cached per-origin by Safari for future visits
-
-## TODO / Untested
-- [ ] Gyro not tested on Chrome on iPhone
-- [ ] Gyro not tested on any Android devices
-- [ ] Remove gyro debug text from bottle screen before merging to prod
-- [ ] Collision fit for lemons/limes (oval shapes, ellipse approximation)
-- [ ] Night Shift / warm display: orange and grapefruit look too similar under iOS Night Shift. No API to detect it. Fix requires making grapefruit PNG more pink/magenta at the art level. Low priority.
-
-## Architecture
-- Bottle liquid: custom SPH (src/components/LiquidBottle.jsx)
-- Fruit physics: Matter.js (src/components/FruitPhysics.jsx)
-- Fruit physics debug: Matter.js + tuning panel (src/components/FruitPhysicsDebug.jsx)
-- Game flow: src/components/Game.jsx
-- Calculator: src/engine/calculate.js
-- Citrus data: src/config/citrusData.js
+## TODO
+- [ ] Mobile safe zone (see above)
+- [ ] Gyro not tested on Chrome iPhone
+- [ ] Gyro not tested on Android
+- [ ] Remove gyro debug text before prod
+- [ ] Night Shift: orange/grapefruit look similar under warm display — art fix needed
+- [ ] Remove .kiro/steering/mobile-safe-zone.md or update it once the approach works
 
 ## Deploy
 - Staging: `git push origin staging` (auto-deploys via Vercel)
