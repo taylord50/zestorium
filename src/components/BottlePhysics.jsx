@@ -50,6 +50,75 @@ const BOTTLE_VERTICES = [
   { x: -0.07, y: -0.44 },
 ];
 
+// Bottle INTERIOR half-width profile (definition-space fractions, inset from glass).
+// Given a y fraction, returns the max |x| fraction a particle can occupy.
+function interiorHalfWidth(yFrac) {
+  if (yFrac < -0.34) return 0;              // above neck opening — sealed by cork
+  if (yFrac < -0.17) return 0.055;          // neck
+  if (yFrac < -0.02) {                      // shoulder — widens linearly
+    const t = (yFrac + 0.17) / 0.15;
+    return 0.055 + t * (0.175 - 0.055);
+  }
+  if (yFrac < 0.36) return 0.175;           // body
+  if (yFrac < 0.40) {                       // bottom curve — narrows slightly
+    const t = (yFrac - 0.36) / 0.04;
+    return 0.175 - t * 0.02;
+  }
+  return 0;
+}
+
+const FLUID_BOTTOM = 0.40;  // definition-space y of interior floor
+const FLUID_DAMPING = 0.94;
+
+// Cheap particle sim: gravity + pairwise repulsion + boundary clamp.
+// All coords in definition space scaled by render size.
+function simulateFluid(particles, gx, gy, renderW, renderH) {
+  const n = particles.length;
+  const r = renderW * 0.055;          // particle radius (px)
+  const minDist = r * 1.7;
+  const minDist2 = minDist * minDist;
+
+  for (let i = 0; i < n; i++) {
+    const p = particles[i];
+    p.vx = (p.vx + gx) * FLUID_DAMPING;
+    p.vy = (p.vy + gy) * FLUID_DAMPING;
+    p.x += p.vx;
+    p.y += p.vy;
+  }
+
+  // Pairwise repulsion (n is small enough for O(n^2))
+  for (let i = 0; i < n; i++) {
+    const a = particles[i];
+    for (let j = i + 1; j < n; j++) {
+      const b = particles[j];
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const d2 = dx * dx + dy * dy;
+      if (d2 < minDist2 && d2 > 0.0001) {
+        const d = Math.sqrt(d2);
+        const push = (minDist - d) * 0.3;
+        const nx = dx / d;
+        const ny = dy / d;
+        a.x -= nx * push; a.y -= ny * push;
+        b.x += nx * push; b.y += ny * push;
+      }
+    }
+  }
+
+  // Boundary clamp — bottle interior in local frame
+  for (let i = 0; i < n; i++) {
+    const p = particles[i];
+    let yF = p.y / renderH;
+    // floor / ceiling
+    if (yF > FLUID_BOTTOM) { p.y = FLUID_BOTTOM * renderH; p.vy *= -0.2; yF = FLUID_BOTTOM; }
+    if (yF < -0.34) { p.y = -0.34 * renderH; p.vy *= -0.2; yF = -0.34; }
+    // side walls at this height (profile fractions share the vertex x-space: * renderW)
+    const lim = interiorHalfWidth(yF) * renderW;
+    if (p.x > lim) { p.x = lim; p.vx *= -0.2; }
+    if (p.x < -lim) { p.x = -lim; p.vx *= -0.2; }
+  }
+}
+
 // Standard, realistic physics defaults
 const DEFAULT_PARAMS = {
   gravity: 1.0,        // Matter.js default earth-like gravity
@@ -69,6 +138,7 @@ function BottlePhysics() {
   const renderLoopRef = useRef(null);
   const bottleImgRef = useRef(null);
   const imgOffsetRef = useRef({ x: 0, y: 0 });
+  const fluidRef = useRef(null);
   const [dims, setDims] = useState({ w: 320, h: 560 });
 
   // Load bottle image
@@ -134,9 +204,8 @@ function BottlePhysics() {
       const cX = defMinX - (bottle.bounds.min.x - bottle.position.x);
       const cY = defMinY - (bottle.bounds.min.y - bottle.position.y);
 
-      // Move center of mass to where the body starts necking down
-      // (top of the full-width body, y = -0.02 in definition space).
-      const COM_Y = -0.02 * renderH; // definition-space target
+      // Center of mass slightly below the shoulder line — stable but tippable.
+      const COM_Y = 0.06 * renderH; // definition-space target
       Matter.Body.setCentre(bottle, { x: 0 - cX, y: COM_Y - cY }, true);
 
       // Image center (definition origin) relative to new body position:
@@ -144,6 +213,17 @@ function BottlePhysics() {
 
       bottleBodyRef.current = bottle;
       Matter.Composite.add(engine.world, bottle);
+
+      // Initialize fluid particles on a grid inside the bottle (~80% fill)
+      const fluid = [];
+      const spacing = renderW * 0.075;
+      for (let y = FLUID_BOTTOM * renderH - spacing / 2; y > -0.10 * renderH; y -= spacing) {
+        const lim = interiorHalfWidth(y / renderH) * renderW - spacing / 2;
+        for (let x = -lim; x <= lim; x += spacing) {
+          fluid.push({ x, y, vx: 0, vy: 0 });
+        }
+      }
+      fluidRef.current = fluid;
     }
 
     // Walls — flush with visible screen edges
@@ -251,38 +331,41 @@ function BottlePhysics() {
         const pos = bottle.position;
         const angle = bottle.angle;
 
+        const off = imgOffsetRef.current;
+
+        // --- Fluid simulation in the bottle's local frame ---
+        // Particles live in definition-space coords; the boundary never moves
+        // in this frame so the liquid can never escape the bottle.
+        const particles = fluidRef.current;
+        if (particles) {
+          const g = engine.gravity;
+          // Rotate world gravity into the bottle's local frame
+          const cosA = Math.cos(angle);
+          const sinA = Math.sin(angle);
+          const glx = (g.x * cosA + g.y * sinA) * 0.25;
+          const gly = (-g.x * sinA + g.y * cosA) * 0.25;
+          simulateFluid(particles, glx, gly, renderW, renderH);
+
+          // Draw particles inside the rotated bottle frame, under the artwork
+          ctx.save();
+          ctx.translate(pos.x, pos.y);
+          ctx.rotate(angle);
+          ctx.fillStyle = 'rgba(255, 244, 170, 0.9)';
+          const pr = renderW * 0.055;
+          for (const fp of particles) {
+            ctx.beginPath();
+            ctx.arc(off.x + fp.x, off.y + fp.y, pr, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
+        }
+
+        // Bottle artwork on top of the liquid
         ctx.save();
         ctx.translate(pos.x, pos.y);
         ctx.rotate(angle);
-        // Offset image to align with polygon bbox center (not centroid)
-        const off = imgOffsetRef.current;
         ctx.drawImage(img, off.x - renderW / 2, off.y - renderH / 2, renderW, renderH);
         ctx.restore();
-
-        // Debug: fill collision polygon in translucent blue
-        const vertices = bottle.vertices;
-        if (vertices && vertices.length > 0) {
-          ctx.beginPath();
-          ctx.moveTo(vertices[0].x, vertices[0].y);
-          for (let i = 1; i < vertices.length; i++) {
-            ctx.lineTo(vertices[i].x, vertices[i].y);
-          }
-          ctx.closePath();
-          ctx.fillStyle = 'rgba(100, 180, 255, 0.3)';
-          ctx.fill();
-          ctx.strokeStyle = 'rgba(100, 180, 255, 0.7)';
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
-        }
-
-        // Debug: red dot at the center of mass (body position)
-        ctx.beginPath();
-        ctx.arc(pos.x, pos.y, 6, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255, 40, 40, 0.9)';
-        ctx.fill();
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 2;
-        ctx.stroke();
       }
 
       renderLoopRef.current = requestAnimationFrame(loop);
