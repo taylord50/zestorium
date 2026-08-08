@@ -65,8 +65,8 @@ function BottlePhysics() {
     setDims({ w: rect.width, h: rect.height });
   }, []);
 
-  // Bottle render size: 60% of container height, 2:3 aspect ratio
-  const renderH = dims.h * 0.6;
+  // Bottle render size: exactly 42vh tall, 2:3 aspect ratio (matches old static bottle)
+  const renderH = window.innerHeight * 0.42;
   const renderW = renderH * (2 / 3);
 
   // Initialize physics

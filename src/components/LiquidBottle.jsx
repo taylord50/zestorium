@@ -123,7 +123,7 @@ function createParticles(count, fillLevel) {
   return particles;
 }
 
-function LiquidBottle({ value, onChange, readOnly = false, liquidColor = 'rgba(220, 200, 150, 0.9)', bottleImage = '/bottle.png' }) {
+function LiquidBottle({ value, onChange, readOnly = false, liquidColor = 'rgba(245, 238, 220, 0.95)', bottleImage = '/bottle.png' }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const particlesRef = useRef(null);
@@ -387,15 +387,17 @@ function LiquidBottle({ value, onChange, readOnly = false, liquidColor = 'rgba(2
           buckets[col] = p.y;
         }
       }
-      // Draw surface line through the top of the liquid
+      // Draw thick crisp surface line at the liquid/air interface
       ctx.beginPath();
-      ctx.strokeStyle = 'rgba(40, 40, 40, 0.6)';
-      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = 'rgba(30, 30, 30, 0.85)';
+      ctx.lineWidth = 4;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
       let started = false;
       for (let col = 0; col < buckets.length; col++) {
         if (buckets[col] < H - 5) {
           const x = col * 8 + 4;
-          const y = buckets[col] - r * 0.3;
+          const y = buckets[col] - r * 0.5;
           if (!started) { ctx.moveTo(x, y); started = true; }
           else { ctx.lineTo(x, y); }
         }
