@@ -89,10 +89,6 @@ function App() {
       <div className="app app-game">
         <header className="header">
           <h1 className="logo">Zestorium</h1>
-          <p className="tagline">
-            Making any citrus liqueur at home is easy. You can do it in any amount,
-            starting with ingredients you probably already have.
-          </p>
         </header>
         <Game onComplete={handleGameComplete} />
         <p className="skip-link">

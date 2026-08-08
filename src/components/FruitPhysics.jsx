@@ -9,7 +9,7 @@ import { CITRUS_DATA } from '../config/citrusData';
  */
 
 const CANVAS_W = 320;
-const CANVAS_H = 500;
+const CANVAS_H = 384;
 
 // Fruit image data: bounding boxes for cropping the PNG sprites
 const FRUIT_DATA = {

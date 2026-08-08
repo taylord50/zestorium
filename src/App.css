@@ -1247,14 +1247,13 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .fruit-physics-canvas-wrap {
-  width: 100%;
-  max-width: 320px;
-  aspect-ratio: 320 / 480;
+  width: calc(100% + 3rem);
+  margin-left: -1.5rem;
+  margin-right: -1.5rem;
+  aspect-ratio: 320 / 384;
   position: relative;
-  border-radius: var(--radius);
   overflow: hidden;
   background: var(--color-cream);
-  border: 1px solid var(--color-border);
 }
 
 .fruit-physics-canvas {
