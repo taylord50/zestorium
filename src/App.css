@@ -883,15 +883,18 @@ input[type="range"]::-moz-range-thumb {
 .app.app-game {
   padding: 0.5rem 0 0;
   max-width: 100%;
+  width: 100%;
+  margin: 0;
 }
 
 .app-game .header {
   margin-bottom: 0.15rem;
-  padding-top: 0;
+  padding: 0 1rem;
 }
 
 .app-game .logo {
-  font-size: 2rem;
+  font-size: 1.5rem;
+  margin-bottom: 0;
 }
 
 .app-game .tagline {
@@ -937,7 +940,9 @@ input[type="range"]::-moz-range-thumb {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 2rem 1rem;
+  justify-content: center;
+  padding: 1.2rem 0.75rem;
+  min-height: 150px;
   border: 2px solid var(--color-border);
   border-radius: var(--radius);
   background: var(--color-warm-white);
@@ -957,25 +962,25 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .game-option-fruit-img {
-  width: 80px;
-  height: 80px;
+  width: 60px;
+  height: 60px;
   object-fit: contain;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
 .game-option-fruit-img[alt="Lime"] {
-  width: 68px;
-  height: 68px;
+  width: 51px;
+  height: 51px;
 }
 
 .game-option-fruit-img[alt="Orange"] {
-  width: 92px;
-  height: 92px;
+  width: 69px;
+  height: 69px;
 }
 
 .game-option-fruit-img[alt="Grapefruit"] {
-  width: 104px;
-  height: 104px;
+  width: 86px;
+  height: 86px;
 }
 
 .game-option-label {
