@@ -109,20 +109,30 @@ function FruitPhysics({ citrusType, onConfirm }) {
     engineRef.current.gravity.x = tiltX * PARAMS.gravity * 2;
   }, []);
 
-  useEffect(() => {
-    const enableGyro = async () => {
-      try {
-        if (typeof DeviceOrientationEvent !== 'undefined' &&
-            typeof DeviceOrientationEvent.requestPermission === 'function') {
-          const permission = await DeviceOrientationEvent.requestPermission();
-          if (permission === 'granted') {
-            window.addEventListener('deviceorientation', handleOrientation);
-          }
-        } else {
+  const gyroEnabledRef = useRef(false);
+  const gyroRequestedRef = useRef(false);
+  const enableGyro = useCallback(async () => {
+    if (gyroRequestedRef.current) return;
+    gyroRequestedRef.current = true;
+    try {
+      if (typeof DeviceOrientationEvent !== 'undefined' &&
+          typeof DeviceOrientationEvent.requestPermission === 'function') {
+        const permission = await DeviceOrientationEvent.requestPermission();
+        if (permission === 'granted') {
           window.addEventListener('deviceorientation', handleOrientation);
+          gyroEnabledRef.current = true;
         }
-      } catch (e) { /* no gyro available */ }
-    };
+      } else {
+        window.addEventListener('deviceorientation', handleOrientation);
+        gyroEnabledRef.current = true;
+      }
+    } catch (e) {
+      gyroRequestedRef.current = false;
+    }
+  }, [handleOrientation]);
+
+  // Try on mount (works if permission already granted)
+  useEffect(() => {
     enableGyro();
     return () => window.removeEventListener('deviceorientation', handleOrientation);
   }, [handleOrientation]);
@@ -230,6 +240,7 @@ function FruitPhysics({ citrusType, onConfirm }) {
 
   // Pointer: tap to add, drag to move, fling to remove
   const handlePointerDown = (e) => {
+    if (!gyroEnabledRef.current) enableGyro();
     const rect = containerRef.current.getBoundingClientRect();
     const scaleX = CANVAS_W / rect.width;
     const scaleY = CANVAS_H / rect.height;

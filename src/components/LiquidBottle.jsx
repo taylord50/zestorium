@@ -433,29 +433,37 @@ function LiquidBottle({ value, onChange }) {
     };
   }, []);
 
-  // Auto-enable gyro on mount
-  useEffect(() => {
-    const enableGyro = async () => {
-      try {
-        if (typeof DeviceOrientationEvent !== 'undefined' &&
-            typeof DeviceOrientationEvent.requestPermission === 'function') {
-          const permission = await DeviceOrientationEvent.requestPermission();
-          if (permission === 'granted') {
-            window.addEventListener('deviceorientation', handleOrientation);
-            setGyroEnabled(true);
-          }
-        } else {
+  const gyroRequestedRef = useRef(false);
+  const enableGyro = useCallback(async () => {
+    if (gyroRequestedRef.current) return;
+    gyroRequestedRef.current = true;
+    try {
+      if (typeof DeviceOrientationEvent !== 'undefined' &&
+          typeof DeviceOrientationEvent.requestPermission === 'function') {
+        const permission = await DeviceOrientationEvent.requestPermission();
+        if (permission === 'granted') {
           window.addEventListener('deviceorientation', handleOrientation);
           setGyroEnabled(true);
         }
-      } catch (e) { /* no gyro available */ }
-    };
+      } else {
+        window.addEventListener('deviceorientation', handleOrientation);
+        setGyroEnabled(true);
+      }
+    } catch (e) {
+      // Permission denied or failed — allow retry on next interaction
+      gyroRequestedRef.current = false;
+    }
+  }, [handleOrientation]);
+
+  // Try on mount (works if permission already granted)
+  useEffect(() => {
     enableGyro();
     return () => window.removeEventListener('deviceorientation', handleOrientation);
   }, [handleOrientation]);
 
-  // Drag
+  // Drag — also triggers gyro permission on first touch (user gesture required by iOS)
   const handlePointerDown = (e) => {
+    if (!gyroEnabled) enableGyro();
     setDragging(true);
     lastDragY.current = e.clientY;
     e.currentTarget.setPointerCapture(e.pointerId);
