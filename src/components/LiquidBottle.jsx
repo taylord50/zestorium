@@ -123,7 +123,7 @@ function createParticles(count, fillLevel) {
   return particles;
 }
 
-function LiquidBottle({ value, onChange }) {
+function LiquidBottle({ value, onChange, readOnly = false, liquidColor = 'rgba(110, 180, 225, 0.9)' }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const particlesRef = useRef(null);
@@ -368,7 +368,7 @@ function LiquidBottle({ value, onChange }) {
   // merges them into a smooth liquid surface entirely on the GPU
   function render(ctx, particles) {
     ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = 'rgba(110, 180, 225, 0.9)';
+    ctx.fillStyle = liquidColor;
     const r = PARTICLE_RADIUS * 2;
     for (let i = 0; i < particles.length; i++) {
       const p = particles[i];
@@ -546,8 +546,8 @@ function LiquidBottle({ value, onChange }) {
         {/* Bottle artwork on top */}
         <img src="/bottle.png" alt="Glass bottle" className="bottle-png-overlay" draggable={false} />
       </div>
-      <p className="bottle-amount-text">~{mlAmount}ml</p>
-      <p className="bottle-drag-hint">{dragging ? 'Release to set' : 'Drag up and down'}</p>
+      {!readOnly && <p className="bottle-amount-text">~{mlAmount}ml</p>}
+      {!readOnly && <p className="bottle-drag-hint">{dragging ? 'Release to set' : 'Drag up and down'}</p>}
     </div>
   );
 }

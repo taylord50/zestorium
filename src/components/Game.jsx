@@ -6,11 +6,20 @@ import LiquidBottle from './LiquidBottle';
 import FruitPhysics from './FruitPhysics';
 
 const SPIRIT_OPTIONS = [
-  { label: 'Vodka', sublabel: '80 proof', proof: 80 },
-  { label: 'Vodka 100', sublabel: '100 proof', proof: 100 },
-  { label: 'Everclear', sublabel: '151 proof', proof: 151 },
-  { label: 'Everclear', sublabel: '190 proof', proof: 190 },
+  { label: '80 proof', proof: 80 },
+  { label: '90 proof', proof: 90 },
+  { label: '100 proof', proof: 100 },
+  { label: '151 proof', proof: 151 },
+  { label: '190 proof', proof: 190 },
 ];
+
+// Minimum fruits needed per type (will be adjusted later)
+const MIN_FRUITS = {
+  lemon: 6,
+  lime: 5,
+  orange: 3,
+  grapefruit: 2,
+};
 
 const pageVariants = {
   enter: { opacity: 0, x: 60 },
@@ -18,7 +27,7 @@ const pageVariants = {
   exit: { opacity: 0, x: -60 },
 };
 
-function Game({ onComplete }) {
+function Game({ onComplete, onSkipToCalculator }) {
   const [step, setStep] = useState(0);
   const [citrusType, setCitrusType] = useState(null);
   const [spirit, setSpirit] = useState(null);
@@ -31,12 +40,13 @@ function Game({ onComplete }) {
     setTimeout(() => setStep(2), 100);
   };
 
-  const handleSpiritAndBottleConfirm = () => {
-    if (!spirit) return;
+  const handleFruitConfirm = (count) => {
+    setFruitCount(count);
     setStep(3);
   };
 
-  const handleFruitConfirm = () => {
+  const handleFinalConfirm = () => {
+    if (!spirit) return;
     const spiritMl = Math.round(750 * bottleLevel);
     onComplete({
       citrusType,
@@ -62,7 +72,7 @@ function Game({ onComplete }) {
           >
             <p className="intro-tagline">Three ingredients. One week.<br />Your own limoncello.</p>
             <div className="intro-bottle-wrap">
-              <LiquidBottle value={0.8} onChange={() => {}} />
+              <LiquidBottle value={0.8} onChange={() => {}} readOnly liquidColor="rgba(245, 220, 80, 0.9)" />
             </div>
             <motion.button
               className="game-confirm"
@@ -86,7 +96,7 @@ function Game({ onComplete }) {
             exit="exit"
             transition={{ duration: 0.25 }}
           >
-            <h2>Pick your flavor</h2>
+            <p className="step-intro">We'll build your recipe from what's in your kitchen.<br />What citrus do you have?</p>
             <div className="game-options game-options-grid">
               {Object.entries(CITRUS_DATA).map(([key, data]) => (
                 <motion.button
@@ -102,56 +112,15 @@ function Game({ onComplete }) {
                     className="game-option-fruit-img"
                   />
                   <span className="game-option-label">{data.label}</span>
+                  <span className="game-option-min">at least {MIN_FRUITS[key]}</span>
                 </motion.button>
               ))}
             </div>
           </motion.div>
         )}
 
-        {/* Step 2: Spirit + Bottle (merged) */}
+        {/* Step 2: Fruit Physics */}
         {step === 2 && (
-          <motion.div
-            key="spirit-bottle"
-            className="game-step"
-            variants={pageVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{ duration: 0.25 }}
-          >
-            <h2>How full is your bottle?</h2>
-            <div className="spirit-bottle-layout">
-              <div className="spirit-select-side">
-                {SPIRIT_OPTIONS.map((s) => (
-                  <motion.button
-                    key={s.proof}
-                    className={`spirit-pill ${spirit?.proof === s.proof ? 'active' : ''}`}
-                    onClick={() => setSpirit(s)}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <span className="spirit-pill-label">{s.label}</span>
-                    <span className="spirit-pill-sub">{s.sublabel}</span>
-                  </motion.button>
-                ))}
-              </div>
-              <div className="bottle-side">
-                <LiquidBottle value={bottleLevel} onChange={setBottleLevel} />
-              </div>
-            </div>
-            <motion.button
-              className="game-confirm"
-              onClick={handleSpiritAndBottleConfirm}
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              style={{ opacity: spirit ? 1 : 0.4 }}
-            >
-              Let's add fruit!
-            </motion.button>
-          </motion.div>
-        )}
-
-        {/* Step 3: Fruit Physics */}
-        {step === 3 && (
           <motion.div
             key="fruits"
             className="game-step"
@@ -164,11 +133,56 @@ function Game({ onComplete }) {
             <h2>How many {CITRUS_DATA[citrusType]?.label.toLowerCase()}s do you have?</h2>
             <FruitPhysics
               citrusType={citrusType}
-              onConfirm={(count) => {
-                setFruitCount(count);
-                handleFruitConfirm();
-              }}
+              onConfirm={handleFruitConfirm}
             />
+          </motion.div>
+        )}
+
+        {/* Step 3: Spirit + Bottle */}
+        {step === 3 && (
+          <motion.div
+            key="spirit-bottle"
+            className="game-step"
+            variants={pageVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: 0.25 }}
+          >
+            <h2>You'll also need vodka. What do you have?</h2>
+            <div className="spirit-bottle-layout">
+              <div className="spirit-select-side">
+                <p className="spirit-proof-label">Choose your proof</p>
+                {SPIRIT_OPTIONS.map((s) => (
+                  <motion.button
+                    key={s.proof}
+                    className={`spirit-pill ${spirit?.proof === s.proof ? 'active' : ''}`}
+                    onClick={() => setSpirit(s)}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <span className="spirit-pill-label">{s.label}</span>
+                  </motion.button>
+                ))}
+              </div>
+              <div className="bottle-side">
+                <LiquidBottle value={bottleLevel} onChange={setBottleLevel} />
+              </div>
+            </div>
+            <motion.button
+              className="game-confirm"
+              onClick={handleFinalConfirm}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              style={{ opacity: spirit ? 1 : 0.4 }}
+            >
+              Show me my recipe →
+            </motion.button>
+            <button
+              className="skip-vodka-link"
+              onClick={onSkipToCalculator}
+            >
+              I don't have vodka → Skip to calculator
+            </button>
           </motion.div>
         )}
       </AnimatePresence>

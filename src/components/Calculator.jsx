@@ -152,7 +152,7 @@ function Calculator({ onInputChange }) {
               className={`citrus-option ${citrusType === key ? 'active' : ''}`}
               onClick={() => { setCitrusType(key); setFruitDiameter(data.avgDiameter); setNumFruits(data.defaultFruits); }}
             >
-              <span className="citrus-emoji">{data.emoji}</span>
+              <img src={`/fruit-${key}.png`} alt={data.label} className="citrus-option-img" />
               <span className="citrus-label">{data.label}</span>
             </button>
           ))}

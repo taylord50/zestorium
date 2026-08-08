@@ -5,6 +5,7 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
 }
 
 /* Header */
@@ -177,6 +178,13 @@
 
 .citrus-emoji {
   font-size: 1.4rem;
+  margin-bottom: 0.15rem;
+}
+
+.citrus-option-img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
   margin-bottom: 0.15rem;
 }
 
@@ -1322,6 +1330,46 @@ input[type="range"]::-moz-range-thumb {
   min-height: 0;
 }
 
+/* Step intro text */
+.step-intro {
+  font-family: var(--font-serif);
+  font-size: min(1.1rem, 4.5vw);
+  font-weight: 400;
+  color: var(--color-charcoal);
+  text-align: center;
+  line-height: 1.4;
+  margin-bottom: 0.75rem;
+  padding: 0 1rem;
+}
+
+/* Card minimum fruit count */
+.game-option-min {
+  font-size: 0.7rem;
+  color: var(--color-muted);
+  margin-top: 0.2rem;
+}
+
+/* Spirit proof label */
+.spirit-proof-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  margin-bottom: 0.25rem;
+}
+
+/* Skip vodka link */
+.skip-vodka-link {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  text-decoration: underline;
+}
+
 /* Fruit Physics */
 .fruit-physics-container {
   display: flex;
@@ -1336,6 +1384,7 @@ input[type="range"]::-moz-range-thumb {
   position: relative;
   overflow: hidden;
   background: var(--color-cream);
+  border-bottom: 3px solid #222;
 }
 
 .fruit-physics-canvas {

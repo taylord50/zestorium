@@ -325,7 +325,7 @@ function FruitPhysics({ citrusType, onConfirm }) {
         {count} {citrus.label.toLowerCase()}{count !== 1 ? 's' : ''}
       </p>
       <button className="game-confirm" onClick={() => onConfirm(count)}>
-        That's how many I have →
+        Now let's add vodka!
       </button>
     </div>
   );

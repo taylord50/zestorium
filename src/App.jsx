@@ -90,7 +90,7 @@ function App() {
         <header className="header">
           <h1 className="logo">Zestorium</h1>
         </header>
-        <Game onComplete={handleGameComplete} />
+        <Game onComplete={handleGameComplete} onSkipToCalculator={() => setPage('calculator')} />
         <p className="skip-link">
           <button onClick={() => setPage('calculator')}>Skip to full calculator →</button>
         </p>
