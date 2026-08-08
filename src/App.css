@@ -885,6 +885,7 @@ input[type="range"]::-moz-range-thumb {
   max-width: 100%;
   width: 100%;
   margin: 0;
+  overflow: hidden;
 }
 
 .app-game .header {
@@ -893,8 +894,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .app-game .logo {
-  font-size: 1.5rem;
-  margin-bottom: 0;
+  font-size: 2rem;
 }
 
 .app-game .tagline {
@@ -940,9 +940,7 @@ input[type="range"]::-moz-range-thumb {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 1.2rem 0.75rem;
-  min-height: 150px;
+  padding: 2rem 1rem;
   border: 2px solid var(--color-border);
   border-radius: var(--radius);
   background: var(--color-warm-white);
@@ -962,25 +960,25 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .game-option-fruit-img {
-  width: 60px;
-  height: 60px;
+  width: 80px;
+  height: 80px;
   object-fit: contain;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
 }
 
 .game-option-fruit-img[alt="Lime"] {
-  width: 51px;
-  height: 51px;
+  width: 68px;
+  height: 68px;
 }
 
 .game-option-fruit-img[alt="Orange"] {
-  width: 69px;
-  height: 69px;
+  width: 92px;
+  height: 92px;
 }
 
 .game-option-fruit-img[alt="Grapefruit"] {
-  width: 86px;
-  height: 86px;
+  width: 104px;
+  height: 104px;
 }
 
 .game-option-label {
@@ -1247,6 +1245,81 @@ input[type="range"]::-moz-range-thumb {
 
 .game-confirm:hover {
   background: var(--color-lemon-dark);
+}
+
+/* Intro Screen */
+.intro-tagline {
+  font-family: var(--font-serif);
+  font-size: min(1.4rem, 5.5vw);
+  font-weight: 400;
+  color: var(--color-charcoal);
+  text-align: center;
+  line-height: 1.4;
+  margin-bottom: 0.75rem;
+}
+
+.intro-bottle-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  width: 100%;
+}
+
+/* Spirit + Bottle Merged Layout */
+.spirit-bottle-layout {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  gap: 0.75rem;
+  min-height: 0;
+  padding: 0 1rem;
+}
+
+.spirit-select-side {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.spirit-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0.6rem 1rem;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-warm-white);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.spirit-pill.active {
+  border-color: var(--color-lemon-dark);
+  background: var(--color-lemon-light);
+}
+
+.spirit-pill-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-charcoal);
+}
+
+.spirit-pill-sub {
+  font-size: 0.7rem;
+  color: var(--color-muted);
+}
+
+.bottle-side {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
 }
 
 /* Fruit Physics */

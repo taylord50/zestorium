@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { CITRUS_DATA } from '../config/citrusData';
 
 import LiquidBottle from './LiquidBottle';
@@ -18,44 +18,6 @@ const pageVariants = {
   exit: { opacity: 0, x: -60 },
 };
 
-function FruitCounter({ citrusType, value, onChange }) {
-  const citrus = CITRUS_DATA[citrusType];
-  const maxFruits = 20;
-
-  return (
-    <div className="fruit-counter">
-      <div className="fruit-display">
-        <motion.span
-          className="fruit-count-big"
-          key={value}
-          initial={{ scale: 1.4, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-        >
-          {value}
-        </motion.span>
-        <span className="fruit-count-label">{citrus.label.toLowerCase()}s</span>
-      </div>
-      <div className="fruit-grid">
-        {Array.from({ length: maxFruits }, (_, i) => (
-          <motion.button
-            key={i}
-            className={`fruit-dot ${i < value ? 'active' : ''}`}
-            onClick={() => onChange(i + 1)}
-            whileHover={{ scale: 1.3 }}
-            whileTap={{ scale: 0.9 }}
-            animate={i < value ? { opacity: 1, scale: 1 } : { opacity: 0.3, scale: 0.8 }}
-            transition={{ type: 'spring', stiffness: 500, damping: 20 }}
-          >
-            {citrus.emoji}
-          </motion.button>
-        ))}
-      </div>
-      <p className="fruit-hint">Tap to set how many you have</p>
-    </div>
-  );
-}
-
 function Game({ onComplete }) {
   const [step, setStep] = useState(0);
   const [citrusType, setCitrusType] = useState(null);
@@ -66,15 +28,11 @@ function Game({ onComplete }) {
   const handleCitrus = (type) => {
     setCitrusType(type);
     setFruitCount(CITRUS_DATA[type].defaultFruits);
-    setTimeout(() => setStep(1), 100);
-  };
-
-  const handleSpirit = (s) => {
-    setSpirit(s);
     setTimeout(() => setStep(2), 100);
   };
 
-  const handleBottleConfirm = () => {
+  const handleSpiritAndBottleConfirm = () => {
+    if (!spirit) return;
     setStep(3);
   };
 
@@ -91,7 +49,34 @@ function Game({ onComplete }) {
   return (
     <div className="game">
       <AnimatePresence mode="wait">
+        {/* Step 0: Intro / Hook */}
         {step === 0 && (
+          <motion.div
+            key="intro"
+            className="game-step"
+            variants={pageVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: 0.25 }}
+          >
+            <p className="intro-tagline">Three ingredients. One week.<br />Your own limoncello.</p>
+            <div className="intro-bottle-wrap">
+              <LiquidBottle value={0.8} onChange={() => {}} />
+            </div>
+            <motion.button
+              className="game-confirm"
+              onClick={() => setStep(1)}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+            >
+              Let's make some →
+            </motion.button>
+          </motion.div>
+        )}
+
+        {/* Step 1: Citrus Selection */}
+        {step === 1 && (
           <motion.div
             key="citrus"
             className="game-step"
@@ -101,7 +86,7 @@ function Game({ onComplete }) {
             exit="exit"
             transition={{ duration: 0.25 }}
           >
-            <h2>What citrus do you have at home?</h2>
+            <h2>Pick your flavor</h2>
             <div className="game-options game-options-grid">
               {Object.entries(CITRUS_DATA).map(([key, data]) => (
                 <motion.button
@@ -116,44 +101,17 @@ function Game({ onComplete }) {
                     alt={data.label}
                     className="game-option-fruit-img"
                   />
-                  <span className="game-option-label">{data.label}s</span>
+                  <span className="game-option-label">{data.label}</span>
                 </motion.button>
               ))}
             </div>
           </motion.div>
         )}
 
-        {step === 1 && (
-          <motion.div
-            key="spirit"
-            className="game-step"
-            variants={pageVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{ duration: 0.25 }}
-          >
-            <h2>What spirit do you have?</h2>
-            <div className="game-options game-options-list">
-              {SPIRIT_OPTIONS.map((s) => (
-                <motion.button
-                  key={s.proof}
-                  className="game-option-wide"
-                  onClick={() => handleSpirit(s)}
-                  whileHover={{ scale: 1.02, x: 4 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <span className="game-option-label">{s.label}</span>
-                  <span className="game-option-sublabel">{s.sublabel}</span>
-                </motion.button>
-              ))}
-            </div>
-          </motion.div>
-        )}
-
+        {/* Step 2: Spirit + Bottle (merged) */}
         {step === 2 && (
           <motion.div
-            key="bottle"
+            key="spirit-bottle"
             className="game-step"
             variants={pageVariants}
             initial="enter"
@@ -162,18 +120,37 @@ function Game({ onComplete }) {
             transition={{ duration: 0.25 }}
           >
             <h2>How full is your bottle?</h2>
-            <LiquidBottle value={bottleLevel} onChange={setBottleLevel} />
+            <div className="spirit-bottle-layout">
+              <div className="spirit-select-side">
+                {SPIRIT_OPTIONS.map((s) => (
+                  <motion.button
+                    key={s.proof}
+                    className={`spirit-pill ${spirit?.proof === s.proof ? 'active' : ''}`}
+                    onClick={() => setSpirit(s)}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <span className="spirit-pill-label">{s.label}</span>
+                    <span className="spirit-pill-sub">{s.sublabel}</span>
+                  </motion.button>
+                ))}
+              </div>
+              <div className="bottle-side">
+                <LiquidBottle value={bottleLevel} onChange={setBottleLevel} />
+              </div>
+            </div>
             <motion.button
               className="game-confirm"
-              onClick={handleBottleConfirm}
+              onClick={handleSpiritAndBottleConfirm}
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
+              style={{ opacity: spirit ? 1 : 0.4 }}
             >
-              That's about right →
+              Let's add fruit!
             </motion.button>
           </motion.div>
         )}
 
+        {/* Step 3: Fruit Physics */}
         {step === 3 && (
           <motion.div
             key="fruits"

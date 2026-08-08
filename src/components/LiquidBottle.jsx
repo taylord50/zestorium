@@ -548,7 +548,6 @@ function LiquidBottle({ value, onChange }) {
       </div>
       <p className="bottle-amount-text">~{mlAmount}ml</p>
       <p className="bottle-drag-hint">{dragging ? 'Release to set' : 'Drag up and down'}</p>
-      <p style={{ fontSize: 10, color: '#999', marginTop: 4 }}>gyro: {gyroDebug}</p>
     </div>
   );
 }
