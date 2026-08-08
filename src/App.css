@@ -957,6 +957,21 @@ input[type="range"]::-moz-range-thumb {
   margin-bottom: 0.75rem;
 }
 
+.game-option-fruit-img[alt="Lime"] {
+  width: 68px;
+  height: 68px;
+}
+
+.game-option-fruit-img[alt="Orange"] {
+  width: 92px;
+  height: 92px;
+}
+
+.game-option-fruit-img[alt="Grapefruit"] {
+  width: 104px;
+  height: 104px;
+}
+
 .game-option-label {
   font-size: 1rem;
   font-weight: 600;

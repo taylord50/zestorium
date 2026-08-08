@@ -48,6 +48,7 @@
 - [ ] Gyro not tested on any Android devices
 - [ ] Remove gyro debug text from bottle screen before merging to prod
 - [ ] Collision fit for lemons/limes (oval shapes, ellipse approximation)
+- [ ] Night Shift / warm display: orange and grapefruit look too similar under iOS Night Shift. No API to detect it. Fix requires making grapefruit PNG more pink/magenta at the art level. Low priority.
 
 ## Architecture
 - Bottle liquid: custom SPH (src/components/LiquidBottle.jsx)
