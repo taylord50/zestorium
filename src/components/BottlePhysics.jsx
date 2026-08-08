@@ -9,6 +9,14 @@ import Matter from 'matter-js';
  */
 
 const BOTTLE_IMG = '/bottle-nolabel.png';
+const CORK_IMG = '/cork.png';
+
+// Cork sprite content region within cork.png (pixel-traced)
+const CORK_SRC = { x: 420, y: 744, w: 184, h: 188 };
+// Painted cork location in the bottle image (definition-space fractions)
+const CORK_CENTER_X = -0.011;  // of renderW
+const CORK_TOP_Y = -0.438;     // of renderH
+const CORK_WIDTH_FRAC = 0.13;  // of renderW
 
 // ---------- Rigid body collision polygon (traced from bottle pixels) ----------
 const BOTTLE_VERTICES = [
@@ -171,7 +179,7 @@ function createFluidParticles(count, fillLevel) {
 }
 
 // SPH double-density relaxation — same algorithm/params as LiquidBottle
-function simulateFluid(particles, gx, gy, sleep) {
+function simulateFluid(particles, gx, gy, sleep, uncorked) {
   const n = particles.length;
 
   if (Math.abs(gx - sleep.lastGx) > 0.02 || Math.abs(gy - sleep.lastGy) > 0.02) {
@@ -295,7 +303,10 @@ function simulateFluid(particles, gx, gy, sleep) {
     const curveDrop = (1 - Math.sqrt(1 - dx * dx)) * bottomCurveHeight;
     const localBottom = bottomY - curveDrop;
     if (p.y > localBottom) { p.y = localBottom; p.vy = 0; }
-    if (p.y < topY) { p.y = topY; p.vy = 0; }
+    if (p.y < topY) {
+      if (!uncorked) { p.y = topY; p.vy = 0; }
+      else continue; // above the open neck — free to leave, no side clamps
+    }
     const edges = getBottleEdgesAtY(p.y);
     if (p.x < edges.left + RENDER_INSET) { p.x = edges.left + RENDER_INSET; p.vx = 0; }
     if (p.x > edges.right - RENDER_INSET) { p.x = edges.right - RENDER_INSET; p.vx = 0; }
@@ -334,13 +345,20 @@ function BottlePhysics() {
   const imgOffsetRef = useRef({ x: 0, y: 0 });
   const fluidRef = useRef(null);
   const fluidSleepRef = useRef({ sleeping: false, calmFrames: 0, lastGx: 0, lastGy: 0 });
+  const corkImgRef = useRef(null);
+  const corkBodyRef = useRef(null);
+  const uncorkedRef = useRef(false);
+  const escapedRef = useRef([]); // world-space free-fall droplets
   const [dims, setDims] = useState({ w: 320, h: 560 });
 
-  // Load bottle image
+  // Load bottle + cork images
   useEffect(() => {
     const img = new Image();
     img.src = BOTTLE_IMG;
     img.onload = () => { bottleImgRef.current = img; };
+    const cork = new Image();
+    cork.src = CORK_IMG;
+    cork.onload = () => { corkImgRef.current = cork; };
   }, []);
 
   // Measure viewport
@@ -455,6 +473,52 @@ function BottlePhysics() {
     }
   }, []);
 
+  // Pop the cork — tap anywhere on the bottle
+  const popCork = useCallback((clientX, clientY) => {
+    if (uncorkedRef.current) return;
+    const bottle = bottleBodyRef.current;
+    const engine = engineRef.current;
+    if (!bottle || !engine) return;
+    if (!Matter.Bounds.contains(bottle.bounds, { x: clientX, y: clientY })) return;
+
+    const pos = bottle.position;
+    const angle = bottle.angle;
+    const off = imgOffsetRef.current;
+    const cosA = Math.cos(angle);
+    const sinA = Math.sin(angle);
+
+    // Cork's local position (definition space -> body frame)
+    const corkW = CORK_WIDTH_FRAC * renderW;
+    const corkH = corkW * (CORK_SRC.h / CORK_SRC.w);
+    const lx = off.x + CORK_CENTER_X * renderW;
+    const ly = off.y + CORK_TOP_Y * renderH + corkH / 2;
+    // Transform to world
+    const wx = pos.x + cosA * lx - sinA * ly;
+    const wy = pos.y + sinA * lx + cosA * ly;
+
+    const cork = Matter.Bodies.rectangle(wx, wy, corkW, corkH, {
+      restitution: 0.85,   // violent bouncing
+      friction: 0.05,
+      frictionAir: 0.001,
+      density: 0.001,
+    });
+
+    // Straight up out of the neck: bottle's local up (0,-1) rotated to world = (sinA, -cosA)
+    const POP_SPEED = 22;
+    Matter.Body.setVelocity(cork, { x: sinA * POP_SPEED, y: -cosA * POP_SPEED });
+    Matter.Body.setAngularVelocity(cork, 0); // no spin
+    Matter.Body.setAngle(cork, angle);
+
+    Matter.Composite.add(engine.world, cork);
+    corkBodyRef.current = cork;
+    uncorkedRef.current = true;
+
+    // Wake everything
+    if (bottle.isSleeping) Matter.Sleeping.set(bottle, false);
+    fluidSleepRef.current.sleeping = false;
+    fluidSleepRef.current.calmFrames = 0;
+  }, [renderW, renderH]);
+
   // Enable gyro on touch
   const gyroEnabledRef = useRef(false);
   const enableGyro = useCallback(async () => {
@@ -548,8 +612,36 @@ function BottlePhysics() {
           const glx = (g.x * cosA + g.y * sinA) * FLUID_GRAVITY;
           const gly = (-g.x * sinA + g.y * cosA) * FLUID_GRAVITY;
           const wasSleeping = sleep.sleeping;
-          simulateFluid(particles, glx, gly, sleep);
+          simulateFluid(particles, glx, gly, sleep, uncorkedRef.current);
           if (!sleep.sleeping || wasSleeping !== sleep.sleeping) fluidDirty = true;
+
+          // Collect particles that escaped through the open neck -> world droplets
+          if (uncorkedRef.current) {
+            const topY = IMG_TOP * FH;
+            const fsX = renderW / FW;
+            const fsY = renderH / FH;
+            for (let i = particles.length - 1; i >= 0; i--) {
+              const fp = particles[i];
+              if (fp.y < topY - PARTICLE_RADIUS) {
+                // local render coords
+                const lx = offNow.x + (fp.x / FW - 0.5) * renderW;
+                const ly = offNow.y + (fp.y / FH - 0.5) * renderH;
+                // world position
+                const wx = pos.x + cosA * lx - sinA * ly;
+                const wy = pos.y + sinA * lx + cosA * ly;
+                // world velocity (rotate local velocity + inherit bottle velocity)
+                const lvx = fp.vx * fsX;
+                const lvy = fp.vy * fsY;
+                escapedRef.current.push({
+                  x: wx, y: wy,
+                  vx: cosA * lvx - sinA * lvy + bottle.velocity.x,
+                  vy: sinA * lvx + cosA * lvy + bottle.velocity.y,
+                });
+                particles.splice(i, 1);
+                fluidDirty = true;
+              }
+            }
+          }
 
           // Only redraw fluid pixels when the sim actually moved
           if (fluidDirty) {
@@ -573,12 +665,42 @@ function BottlePhysics() {
             `translate(${pos.x - fcw / 2}px, ${pos.y - fch / 2}px) rotate(${angle}rad)`;
         }
 
+        // --- Escaped droplets: world-space free fall, no boundaries ---
+        const escaped = escapedRef.current;
+        if (escaped.length > 0) {
+          ctx.fillStyle = 'rgba(255, 244, 170, 0.9)';
+          const dr = PARTICLE_RADIUS * 1.6 * (renderW / FW);
+          for (let i = escaped.length - 1; i >= 0; i--) {
+            const d = escaped[i];
+            d.vy += 0.35; // world gravity
+            d.x += d.vx;
+            d.y += d.vy;
+            if (d.y > h + 60) { escaped.splice(i, 1); continue; }
+            ctx.beginPath();
+            ctx.arc(d.x, d.y, dr, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+
         // --- Bottle artwork on the top canvas ---
         ctx.save();
         ctx.translate(pos.x, pos.y);
         ctx.rotate(angle);
         ctx.drawImage(img, offNow.x - renderW / 2, offNow.y - renderH / 2, renderW, renderH);
         ctx.restore();
+
+        // --- Popped cork ---
+        const corkBody = corkBodyRef.current;
+        const corkImg = corkImgRef.current;
+        if (corkBody && corkImg) {
+          const cw = CORK_WIDTH_FRAC * renderW;
+          const ch = cw * (CORK_SRC.h / CORK_SRC.w);
+          ctx.save();
+          ctx.translate(corkBody.position.x, corkBody.position.y);
+          ctx.rotate(corkBody.angle);
+          ctx.drawImage(corkImg, CORK_SRC.x, CORK_SRC.y, CORK_SRC.w, CORK_SRC.h, -cw / 2, -ch / 2, cw, ch);
+          ctx.restore();
+        }
 
         // Debug: red dot at center of mass
         ctx.beginPath();
@@ -636,8 +758,15 @@ function BottlePhysics() {
         {/* Bottle + physics canvas on top */}
         <canvas
           ref={canvasRef}
-          onTouchStart={() => { if (!gyroEnabledRef.current) enableGyro(); }}
-          onClick={() => { if (!gyroEnabledRef.current) enableGyro(); }}
+          onTouchStart={(e) => {
+            if (!gyroEnabledRef.current) enableGyro();
+            const t = e.touches && e.touches[0];
+            if (t) popCork(t.clientX, t.clientY);
+          }}
+          onClick={(e) => {
+            if (!gyroEnabledRef.current) enableGyro();
+            popCork(e.clientX, e.clientY);
+          }}
           style={{
             position: 'fixed',
             top: 0,
