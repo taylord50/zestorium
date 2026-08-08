@@ -218,6 +218,17 @@ function BottlePhysics() {
       const engine = engineRef.current;
       if (!engine) { renderLoopRef.current = requestAnimationFrame(loop); return; }
 
+      // Lock bottle's base X position while upright (< 45 degrees) to prevent sliding
+      const b = bottleBodyRef.current;
+      if (b && landedRef.current) {
+        const angle = Math.abs(b.angle % (Math.PI * 2));
+        const tiltDeg = (angle > Math.PI ? Math.PI * 2 - angle : angle) * (180 / Math.PI);
+        if (tiltDeg < 45) {
+          Matter.Body.setVelocity(b, { x: 0, y: b.velocity.y });
+          Matter.Body.setPosition(b, { x: w / 2, y: b.position.y });
+        }
+      }
+
       Matter.Engine.update(engine, 1000 / 60);
 
       ctx.clearRect(0, 0, w, h);
@@ -233,6 +244,20 @@ function BottlePhysics() {
         ctx.rotate(angle);
         ctx.drawImage(img, -renderW / 2, -renderH / 2, renderW, renderH);
         ctx.restore();
+
+        // Debug: draw collision polygon in light blue
+        const vertices = bottle.vertices;
+        if (vertices && vertices.length > 0) {
+          ctx.beginPath();
+          ctx.moveTo(vertices[0].x, vertices[0].y);
+          for (let i = 1; i < vertices.length; i++) {
+            ctx.lineTo(vertices[i].x, vertices[i].y);
+          }
+          ctx.closePath();
+          ctx.strokeStyle = 'rgba(100, 180, 255, 0.7)';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
       }
 
       renderLoopRef.current = requestAnimationFrame(loop);
