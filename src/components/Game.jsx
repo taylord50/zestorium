@@ -111,7 +111,11 @@ function Game({ onComplete }) {
                   whileHover={{ scale: 1.05, y: -4 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <span className="game-option-emoji">{data.emoji}</span>
+                  <img
+                    src={`/fruit-${key}.png`}
+                    alt={data.label}
+                    className="game-option-fruit-img"
+                  />
                   <span className="game-option-label">{data.label}s</span>
                 </motion.button>
               ))}

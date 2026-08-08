@@ -950,6 +950,13 @@ input[type="range"]::-moz-range-thumb {
   margin-bottom: 0.75rem;
 }
 
+.game-option-fruit-img {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  margin-bottom: 0.75rem;
+}
+
 .game-option-label {
   font-size: 1rem;
   font-weight: 600;
