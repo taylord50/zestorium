@@ -1,9 +1,10 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CITRUS_DATA } from '../config/citrusData';
 
 import LiquidBottle from './LiquidBottle';
 import FruitPhysics from './FruitPhysics';
+import BottlePhysics from './BottlePhysics';
 
 const SPIRIT_OPTIONS = [
   { label: '80 proof', proof: 80 },
@@ -96,7 +97,7 @@ function Game({ onComplete, onSkipToCalculator }) {
           >
             <p className="intro-tagline">Three ingredients. One week.<br />Your own limoncello.</p>
             <div className="intro-bottle-wrap">
-              <LiquidBottle value={0.8} onChange={() => {}} readOnly liquidColor="rgba(255, 248, 180, 0.85)" bottleImage="/bottle-nolabel.png" />
+              <BottlePhysics />
             </div>
             <motion.button
               className="game-confirm"

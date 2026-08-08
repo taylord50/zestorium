@@ -235,8 +235,8 @@ function BottlePhysics() {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', width: '100%', background: '#FBF8F1' }}>
-      {/* Main bottle area */}
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%' }}>
+      {/* Bottle physics area */}
       <div
         ref={containerRef}
         onTouchStart={() => { if (!gyroEnabledRef.current) enableGyro(); }}
@@ -246,37 +246,28 @@ function BottlePhysics() {
           position: 'relative',
           touchAction: 'none',
           overflow: 'hidden',
+          minHeight: 0,
         }}
       >
         <canvas
           ref={canvasRef}
           style={{ width: '100%', height: '100%', display: 'block' }}
         />
-        {/* Overlay text like home screen */}
-        <div style={{ position: 'absolute', top: '0.5rem', left: 0, right: 0, textAlign: 'center', pointerEvents: 'none' }}>
-          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.5rem', fontWeight: 400, color: '#2A2A2A' }}>Zestorium</h1>
-          <p style={{ fontFamily: 'var(--font-serif)', fontSize: '1rem', color: '#2A2A2A', marginTop: '0.25rem' }}>
-            Three ingredients. One week.<br />Your own limoncello.
-          </p>
-        </div>
-        <p style={{ position: 'absolute', bottom: '1rem', left: 0, right: 0, textAlign: 'center', color: '#999', fontSize: '0.75rem', pointerEvents: 'none' }}>
-          Tilt your phone to tip the bottle
-        </p>
       </div>
 
-      {/* Debug tuning panel — compact at bottom */}
-      <div style={{ padding: '8px 12px', background: '#fff', borderTop: '1px solid #ddd', fontSize: 11, overflowY: 'auto', maxHeight: '30vh' }}>
-        <strong style={{ fontSize: 12 }}>Bottle Physics</strong>
+      {/* Debug tuning panel */}
+      <div style={{ padding: '6px 10px', background: '#fff', borderTop: '1px solid #ddd', fontSize: 10, overflowY: 'auto', maxHeight: '25vh' }}>
+        <strong style={{ fontSize: 11 }}>Bottle Physics</strong>
         {sliders.map(({ key, min, max, step, label }) => (
-          <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-            <span style={{ width: 90, fontWeight: 600 }}>{label}</span>
+          <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 3 }}>
+            <span style={{ width: 80, fontWeight: 600 }}>{label}</span>
             <input
               type="range" min={min} max={max} step={step}
               value={params[key]}
               onChange={(e) => updateParam(key, e.target.value)}
               style={{ flex: 1 }}
             />
-            <span style={{ width: 40, fontFamily: 'monospace', textAlign: 'right' }}>{params[key]}</span>
+            <span style={{ width: 36, fontFamily: 'monospace', textAlign: 'right' }}>{params[key]}</span>
           </div>
         ))}
       </div>

@@ -11,7 +11,7 @@ import './App.css';
 
 function App() {
   const [recipe, setRecipe] = useState(null);
-  const [page, setPage] = useState('bottle-proto'); // 'bottle-proto' | 'game' | 'calculator' | 'story'
+  const [page, setPage] = useState('game'); // 'game' | 'calculator' | 'story'
   const [gameDefaults, setGameDefaults] = useState(null);
   // const [debugFruit, setDebugFruit] = useState(true); // start on fruit step for debugging
 
