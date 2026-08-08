@@ -123,7 +123,7 @@ function createParticles(count, fillLevel) {
   return particles;
 }
 
-function LiquidBottle({ value, onChange, readOnly = false, liquidColor = 'rgba(110, 180, 225, 0.9)', bottleImage = '/bottle.png' }) {
+function LiquidBottle({ value, onChange, readOnly = false, liquidColor = 'rgba(220, 200, 150, 0.9)', bottleImage = '/bottle.png' }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const particlesRef = useRef(null);
@@ -375,6 +375,32 @@ function LiquidBottle({ value, onChange, readOnly = false, liquidColor = 'rgba(1
       ctx.beginPath();
       ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
       ctx.fill();
+    }
+
+    // Surface line: find topmost particle in each column bucket
+    if (particles.length > 10) {
+      const buckets = new Float32Array(Math.ceil(W / 8)).fill(H);
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        const col = Math.floor(p.x / 8);
+        if (col >= 0 && col < buckets.length && p.y < buckets[col]) {
+          buckets[col] = p.y;
+        }
+      }
+      // Draw surface line through the top of the liquid
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(40, 40, 40, 0.6)';
+      ctx.lineWidth = 2.5;
+      let started = false;
+      for (let col = 0; col < buckets.length; col++) {
+        if (buckets[col] < H - 5) {
+          const x = col * 8 + 4;
+          const y = buckets[col] - r * 0.3;
+          if (!started) { ctx.moveTo(x, y); started = true; }
+          else { ctx.lineTo(x, y); }
+        }
+      }
+      ctx.stroke();
     }
   }
 

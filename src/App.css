@@ -1339,6 +1339,7 @@ input[type="range"]::-moz-range-thumb {
   align-items: center;
   justify-content: center;
   min-height: 0;
+  gap: 0.25rem;
 }
 
 /* Step intro text */
@@ -1430,6 +1431,7 @@ input[type="range"]::-moz-range-thumb {
   pointer-events: none;
   text-align: center;
   font-family: var(--font-sans);
+  z-index: 0;
 }
 
 .fruit-tap-hint-subtle {

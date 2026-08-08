@@ -173,10 +173,10 @@ function Game({ onComplete, onSkipToCalculator }) {
             exit="exit"
             transition={{ duration: 0.25 }}
           >
-            <h2>You'll also need vodka.<br />What do you have?</h2>
-            <p className="spirit-proof-label">Choose your proof</p>
+            <h2>You'll also need vodka.<br /><strong>What do you have?</strong></h2>
             <div className="spirit-bottle-layout">
               <div className="spirit-select-side">
+                <p className="spirit-proof-label">Choose your proof</p>
                 {SPIRIT_OPTIONS.map((s) => (
                   <motion.button
                     key={s.proof}
@@ -190,13 +190,13 @@ function Game({ onComplete, onSkipToCalculator }) {
               </div>
               <div className="bottle-side">
                 <LiquidBottle value={bottleLevel} onChange={setBottleLevel} />
-              </div>
-              <div className="swipe-hint-side">
-                <div className="swipe-arrows">
-                  <span className="swipe-arrow-up">↑</span>
-                  <span className="swipe-arrow-down">↓</span>
+                <div className="swipe-hint-side">
+                  <div className="swipe-arrows">
+                    <span className="swipe-arrow-up">↑</span>
+                    <span className="swipe-arrow-down">↓</span>
+                  </div>
+                  <p className="swipe-hint-text">Swipe to set<br />your amount</p>
                 </div>
-                <p className="swipe-hint-text">Swipe to set<br />your amount</p>
               </div>
             </div>
             <motion.button
