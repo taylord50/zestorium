@@ -131,6 +131,7 @@ function LiquidBottle({ value, onChange }) {
   const animRef = useRef(null);
   const [dragging, setDragging] = useState(false);
   const [gyroEnabled, setGyroEnabled] = useState(false);
+  const [gyroDebug, setGyroDebug] = useState('init');
   const lastDragY = useRef(null);
   const valueRef = useRef(value);
   valueRef.current = value;
@@ -439,17 +440,21 @@ function LiquidBottle({ value, onChange }) {
     try {
       if (typeof DeviceOrientationEvent !== 'undefined' &&
           typeof DeviceOrientationEvent.requestPermission === 'function') {
+        setGyroDebug('has requestPermission, calling...');
         const permission = await DeviceOrientationEvent.requestPermission();
+        setGyroDebug('permission: ' + permission);
         if (permission === 'granted') {
           window.addEventListener('deviceorientation', handleOrientation);
           setGyroEnabled(true);
+          setGyroDebug('granted + listening');
         }
       } else {
+        setGyroDebug('no requestPermission, adding listener directly');
         window.addEventListener('deviceorientation', handleOrientation);
         setGyroEnabled(true);
       }
     } catch (e) {
-      // Permission failed — will retry on next user gesture
+      setGyroDebug('error: ' + e.message);
     }
   }, [handleOrientation, gyroEnabled]);
 
@@ -523,6 +528,7 @@ function LiquidBottle({ value, onChange }) {
       </div>
       <p className="bottle-amount-text">~{mlAmount}ml</p>
       <p className="bottle-drag-hint">{dragging ? 'Release to set' : 'Drag up and down'}</p>
+      <p style={{ fontSize: 10, color: '#999', marginTop: 4 }}>gyro: {gyroDebug}</p>
     </div>
   );
 }
