@@ -70,6 +70,9 @@ function BottlePhysics() {
   const renderH = window.innerHeight * 0.42;
   const renderW = renderH * (2 / 3);
 
+  // Track whether bottle has landed (gyro disabled until then)
+  const landedRef = useRef(false);
+
   // Initialize physics
   useEffect(() => {
     const { w, h } = dims;
@@ -79,17 +82,20 @@ function BottlePhysics() {
     engine.gravity.x = 0;
     engineRef.current = engine;
 
-    // Create bottle body — starts above the screen, falls in
+    // Create bottle body — starts just above screen (bottom of bottle at y=0)
     const vertices = BOTTLE_VERTICES.map(v => ({
       x: v.x * renderW,
       y: v.y * renderH,
     }));
 
-    const bottle = Matter.Bodies.fromVertices(w / 2, -renderH, [vertices], {
+    // Floor position: ~68% down the screen (above the button area)
+    const floorY = h * 0.68;
+
+    const bottle = Matter.Bodies.fromVertices(w / 2, -renderH * 0.5, [vertices], {
       restitution: p.restitution,
       friction: p.friction,
       frictionStatic: p.frictionStatic,
-      frictionAir: p.frictionAir,
+      frictionAir: 0.002, // very low air resistance so gravity accelerates naturally
       density: p.density,
       render: { visible: false },
     });
@@ -99,27 +105,37 @@ function BottlePhysics() {
       Matter.Composite.add(engine.world, bottle);
     }
 
-    // Walls — full screen boundaries
+    // Walls — flush with screen edges, floor above button
     const wallThickness = 60;
     const walls = [
-      // Floor at bottom of screen
-      Matter.Bodies.rectangle(w / 2, h + wallThickness / 2, w + 200, wallThickness, { isStatic: true, friction: p.friction, frictionStatic: p.frictionStatic }),
-      // Left wall at screen edge
+      // Floor — above the "Let's make some" button
+      Matter.Bodies.rectangle(w / 2, floorY + wallThickness / 2, w + 200, wallThickness, { isStatic: true, friction: p.friction, frictionStatic: p.frictionStatic }),
+      // Left wall — inner face at x=0
       Matter.Bodies.rectangle(-wallThickness / 2, h / 2, wallThickness, h * 3, { isStatic: true }),
-      // Right wall at screen edge
+      // Right wall — inner face at x=w
       Matter.Bodies.rectangle(w + wallThickness / 2, h / 2, wallThickness, h * 3, { isStatic: true }),
     ];
     Matter.Composite.add(engine.world, walls);
 
+    // Disable gyro until bottle lands — check when bottle velocity is near zero
+    const landCheck = setInterval(() => {
+      const b = bottleBodyRef.current;
+      if (b && b.position.y > floorY - renderH && Math.abs(b.velocity.y) < 0.5) {
+        landedRef.current = true;
+        clearInterval(landCheck);
+      }
+    }, 100);
+
     return () => {
+      clearInterval(landCheck);
       Matter.Engine.clear(engine);
       if (renderLoopRef.current) cancelAnimationFrame(renderLoopRef.current);
     };
   }, [dims]);
 
-  // Gyro — tilts gravity
+  // Gyro — tilts gravity only after bottle has landed
   const handleOrientation = useCallback((e) => {
-    if (e.gamma === null || !engineRef.current) return;
+    if (e.gamma === null || !engineRef.current || !landedRef.current) return;
     const p = DEFAULT_PARAMS;
     let tiltX = e.gamma / 90;
     tiltX = Math.max(-1, Math.min(1, tiltX));
