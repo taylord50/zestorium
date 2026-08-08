@@ -9,9 +9,6 @@ import Matter from 'matter-js';
 
 const BOTTLE_IMG = '/bottle-nolabel.png';
 
-const RENDER_W = 90;
-const RENDER_H = 135;
-
 // Bottle collision polygon (convex hull approximation)
 const BOTTLE_VERTICES = [
   { x: -0.12, y: -0.50 },
@@ -71,6 +68,10 @@ function BottlePhysics() {
     setDims({ w: rect.width, h: rect.height });
   }, []);
 
+  // Bottle render size: 60% of container height, 2:3 aspect ratio
+  const renderH = dims.h * 0.6;
+  const renderW = renderH * (2 / 3);
+
   // Initialize physics
   useEffect(() => {
     const { w, h } = dims;
@@ -82,11 +83,11 @@ function BottlePhysics() {
 
     // Create bottle body — starts upright, centered horizontally, resting on floor
     const vertices = BOTTLE_VERTICES.map(v => ({
-      x: v.x * RENDER_W,
-      y: v.y * RENDER_H,
+      x: v.x * renderW,
+      y: v.y * renderH,
     }));
 
-    const bottle = Matter.Bodies.fromVertices(w / 2, h - RENDER_H / 2 - 5, [vertices], {
+    const bottle = Matter.Bodies.fromVertices(w / 2, h - renderH / 2 - 5, [vertices], {
       restitution: p.restitution,
       friction: p.friction,
       frictionStatic: p.frictionStatic,
@@ -209,7 +210,7 @@ function BottlePhysics() {
         ctx.save();
         ctx.translate(pos.x, pos.y);
         ctx.rotate(angle);
-        ctx.drawImage(img, -RENDER_W / 2, -RENDER_H / 2, RENDER_W, RENDER_H);
+        ctx.drawImage(img, -renderW / 2, -renderH / 2, renderW, renderH);
         ctx.restore();
       }
 
