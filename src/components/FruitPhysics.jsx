@@ -129,10 +129,26 @@ function FruitPhysics({ citrusType, onConfirm }) {
     }
   }, [handleOrientation]);
 
-  // Try on mount (succeeds if permission already cached or if requestPermission doesn't exist)
+  // On mount: probe for existing permission by listening for events directly
   useEffect(() => {
-    enableGyro();
-    return () => window.removeEventListener('deviceorientation', handleOrientation);
+    let probeListener;
+    const probe = () => {
+      gyroEnabledRef.current = true;
+      window.removeEventListener('deviceorientation', probeListener);
+      window.addEventListener('deviceorientation', handleOrientation);
+    };
+    probeListener = probe;
+    window.addEventListener('deviceorientation', probeListener);
+
+    const timeout = setTimeout(() => {
+      window.removeEventListener('deviceorientation', probeListener);
+    }, 500);
+
+    return () => {
+      clearTimeout(timeout);
+      window.removeEventListener('deviceorientation', probeListener);
+      window.removeEventListener('deviceorientation', handleOrientation);
+    };
   }, [handleOrientation]);
 
   // Add a fruit at position
@@ -294,6 +310,7 @@ function FruitPhysics({ citrusType, onConfirm }) {
       <div
         className="fruit-physics-canvas-wrap"
         ref={containerRef}
+        onTouchStart={() => { if (!gyroEnabledRef.current) enableGyro(); }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}

@@ -434,13 +434,12 @@ function LiquidBottle({ value, onChange }) {
     };
   }, []);
 
-  const gyroRequestedRef = useRef(false);
   const enableGyro = useCallback(async () => {
     if (gyroEnabled) return;
     try {
       if (typeof DeviceOrientationEvent !== 'undefined' &&
           typeof DeviceOrientationEvent.requestPermission === 'function') {
-        setGyroDebug('requesting via click...');
+        setGyroDebug('requesting via gesture...');
         const permission = await DeviceOrientationEvent.requestPermission();
         setGyroDebug('permission: ' + permission);
         if (permission === 'granted') {
@@ -458,8 +457,30 @@ function LiquidBottle({ value, onChange }) {
     }
   }, [handleOrientation, gyroEnabled]);
 
+  // On mount: try adding listener directly — if permission was already granted
+  // in a prior session, events will fire without needing requestPermission().
   useEffect(() => {
-    return () => window.removeEventListener('deviceorientation', handleOrientation);
+    let probeListener;
+    const probe = () => {
+      // If we receive even one event, permission is already granted
+      setGyroEnabled(true);
+      setGyroDebug('already permitted');
+      window.removeEventListener('deviceorientation', probeListener);
+      window.addEventListener('deviceorientation', handleOrientation);
+    };
+    probeListener = probe;
+    window.addEventListener('deviceorientation', probeListener);
+
+    // Clean up probe after 500ms if no event received (permission not granted yet)
+    const timeout = setTimeout(() => {
+      window.removeEventListener('deviceorientation', probeListener);
+    }, 500);
+
+    return () => {
+      clearTimeout(timeout);
+      window.removeEventListener('deviceorientation', probeListener);
+      window.removeEventListener('deviceorientation', handleOrientation);
+    };
   }, [handleOrientation]);
 
   // Drag
