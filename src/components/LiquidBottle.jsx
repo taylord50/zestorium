@@ -435,8 +435,7 @@ function LiquidBottle({ value, onChange }) {
 
   const gyroRequestedRef = useRef(false);
   const enableGyro = useCallback(async () => {
-    if (gyroRequestedRef.current) return;
-    gyroRequestedRef.current = true;
+    if (gyroEnabled) return;
     try {
       if (typeof DeviceOrientationEvent !== 'undefined' &&
           typeof DeviceOrientationEvent.requestPermission === 'function') {
@@ -450,12 +449,11 @@ function LiquidBottle({ value, onChange }) {
         setGyroEnabled(true);
       }
     } catch (e) {
-      // Permission denied or failed — allow retry on next interaction
-      gyroRequestedRef.current = false;
+      // Permission failed — will retry on next user gesture
     }
-  }, [handleOrientation]);
+  }, [handleOrientation, gyroEnabled]);
 
-  // Try on mount (works if permission already granted)
+  // Try on mount (succeeds if permission already cached or if requestPermission doesn't exist)
   useEffect(() => {
     enableGyro();
     return () => window.removeEventListener('deviceorientation', handleOrientation);

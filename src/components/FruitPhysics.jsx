@@ -110,10 +110,8 @@ function FruitPhysics({ citrusType, onConfirm }) {
   }, []);
 
   const gyroEnabledRef = useRef(false);
-  const gyroRequestedRef = useRef(false);
   const enableGyro = useCallback(async () => {
-    if (gyroRequestedRef.current) return;
-    gyroRequestedRef.current = true;
+    if (gyroEnabledRef.current) return;
     try {
       if (typeof DeviceOrientationEvent !== 'undefined' &&
           typeof DeviceOrientationEvent.requestPermission === 'function') {
@@ -127,11 +125,11 @@ function FruitPhysics({ citrusType, onConfirm }) {
         gyroEnabledRef.current = true;
       }
     } catch (e) {
-      gyroRequestedRef.current = false;
+      // Permission failed — will retry on next user gesture
     }
   }, [handleOrientation]);
 
-  // Try on mount (works if permission already granted)
+  // Try on mount (succeeds if permission already cached or if requestPermission doesn't exist)
   useEffect(() => {
     enableGyro();
     return () => window.removeEventListener('deviceorientation', handleOrientation);
