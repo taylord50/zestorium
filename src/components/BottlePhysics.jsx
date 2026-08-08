@@ -49,9 +49,6 @@ function BottlePhysics() {
   const renderLoopRef = useRef(null);
   const bottleImgRef = useRef(null);
   const [dims, setDims] = useState({ w: 320, h: 560 });
-  const [params, setParams] = useState({ ...DEFAULT_PARAMS });
-  const paramsRef = useRef(params);
-  paramsRef.current = params;
 
   // Load bottle image
   useEffect(() => {
@@ -75,7 +72,7 @@ function BottlePhysics() {
   // Initialize physics
   useEffect(() => {
     const { w, h } = dims;
-    const p = paramsRef.current;
+    const p = DEFAULT_PARAMS;
     const engine = Matter.Engine.create();
     engine.gravity.y = p.gravity;
     engine.gravity.x = 0;
@@ -120,7 +117,7 @@ function BottlePhysics() {
   // Gyro — tilts gravity
   const handleOrientation = useCallback((e) => {
     if (e.gamma === null || !engineRef.current) return;
-    const p = paramsRef.current;
+    const p = DEFAULT_PARAMS;
     let tiltX = e.gamma / 90;
     tiltX = Math.max(-1, Math.min(1, tiltX));
     if (Math.abs(tiltX) < 0.04) tiltX = 0;
@@ -169,19 +166,6 @@ function BottlePhysics() {
     };
   }, [handleOrientation]);
 
-  // Update physics params on existing body
-  useEffect(() => {
-    const bottle = bottleBodyRef.current;
-    if (!bottle) return;
-    bottle.friction = params.friction;
-    bottle.frictionStatic = params.frictionStatic;
-    bottle.frictionAir = params.frictionAir;
-    bottle.restitution = params.restitution;
-    if (engineRef.current) {
-      engineRef.current.gravity.y = params.gravity;
-    }
-  }, [params]);
-
   // Render loop
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -221,57 +205,23 @@ function BottlePhysics() {
     return () => { if (renderLoopRef.current) cancelAnimationFrame(renderLoopRef.current); };
   }, [dims]);
 
-  const updateParam = (key, val) => {
-    setParams(prev => ({ ...prev, [key]: parseFloat(val) }));
-  };
-
-  const sliders = [
-    { key: 'gravity', min: 0.5, max: 4, step: 0.1, label: 'Gravity' },
-    { key: 'gravityScale', min: 0.5, max: 5, step: 0.1, label: 'Tilt Sensitivity' },
-    { key: 'friction', min: 0, max: 2, step: 0.05, label: 'Friction' },
-    { key: 'frictionStatic', min: 0, max: 3, step: 0.1, label: 'Static Friction' },
-    { key: 'frictionAir', min: 0, max: 0.1, step: 0.005, label: 'Air Resistance' },
-    { key: 'restitution', min: 0, max: 1, step: 0.05, label: 'Bounciness' },
-    { key: 'density', min: 0.001, max: 0.02, step: 0.001, label: 'Density' },
-  ];
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%' }}>
-      {/* Bottle physics area */}
-      <div
-        ref={containerRef}
-        onTouchStart={() => { if (!gyroEnabledRef.current) enableGyro(); }}
-        onClick={() => { if (!gyroEnabledRef.current) enableGyro(); }}
-        style={{
-          flex: 1,
-          position: 'relative',
-          touchAction: 'none',
-          overflow: 'hidden',
-          minHeight: 0,
-        }}
-      >
-        <canvas
-          ref={canvasRef}
-          style={{ width: '100%', height: '100%', display: 'block' }}
-        />
-      </div>
-
-      {/* Debug tuning panel */}
-      <div style={{ padding: '6px 10px', background: '#fff', borderTop: '1px solid #ddd', fontSize: 10, overflowY: 'auto', maxHeight: '25vh' }}>
-        <strong style={{ fontSize: 11 }}>Bottle Physics</strong>
-        {sliders.map(({ key, min, max, step, label }) => (
-          <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 3 }}>
-            <span style={{ width: 80, fontWeight: 600 }}>{label}</span>
-            <input
-              type="range" min={min} max={max} step={step}
-              value={params[key]}
-              onChange={(e) => updateParam(key, e.target.value)}
-              style={{ flex: 1 }}
-            />
-            <span style={{ width: 36, fontFamily: 'monospace', textAlign: 'right' }}>{params[key]}</span>
-          </div>
-        ))}
-      </div>
+    <div
+      ref={containerRef}
+      onTouchStart={() => { if (!gyroEnabledRef.current) enableGyro(); }}
+      onClick={() => { if (!gyroEnabledRef.current) enableGyro(); }}
+      style={{
+        width: '100%',
+        height: '100%',
+        position: 'relative',
+        touchAction: 'none',
+        overflow: 'hidden',
+      }}
+    >
+      <canvas
+        ref={canvasRef}
+        style={{ width: '100%', height: '100%', display: 'block' }}
+      />
     </div>
   );
 }
