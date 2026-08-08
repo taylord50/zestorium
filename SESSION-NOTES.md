@@ -1,6 +1,6 @@
 # SESSION NOTES — Zestorium
 
-## Status: Game flow on staging, fruit physics tuned, REVERTED viewport work
+## Status: Game flow + tipping bottle w/ fluid + cork pop, all on staging
 
 | Item | Value |
 |------|-------|
@@ -8,65 +8,47 @@
 | Staging | auto-deploys from `staging` branch on Vercel |
 | Repo | github.com/taylord50/zestorium |
 | Stack | React + Vite + Framer Motion + Matter.js |
-| Current commit | bd3605f |
-| Dev server | `npx --registry https://registry.npmjs.org vite --host` |
-| Build | `npx --registry https://registry.npmjs.org vite build` |
+| Dev server | `npx vite --host` (test on phone via LAN IP) |
+| Build | `npx vite build` |
 
-## What's Live on Staging
-- Full game flow: citrus → spirit → bottle → fruit physics → calculator
-- Real fruit PNG images on citrus selection (proportional sizes)
-- FruitPhysics uses Matter.js with tuned params
-- Retina canvas (devicePixelRatio) for crisp mobile rendering
-- Gyro/tilt: auto-probes on mount, falls back to touchstart for permission
-- Per-fruit size variation + deformation
-- FruitPhysicsDebug commented out (uncomment debugFruit in App.jsx to restore)
-- Debug text showing gyro status on bottle screen (remove before prod)
+## User Journey (current)
+1. **Intro**: "Three ingredients. One week. Your own limoncello." + physics bottle
+   - Bottle DROPS from top of screen, lands on invisible floor at 68% height
+   - Gyro tips it over (enabled after landing); trapped in screen walls
+   - TAP the bottle → cork pops out (physics body, violent bounces, stays forever)
+   - Bottle art swaps to bottle-nocork.png; neck boundary opens
+   - Tip far enough → SPH liquid pours out neck, free-falls off screen, gone
+2. **Citrus**: "We'll build your recipe from what's in your kitchen" + 4 cards (min counts)
+3. **Fruit count**: fullscreen fruit physics (fixed viewport canvas, fruit visible behind Zestorium header), tap to add, fling to remove, count in white pill, "Now let's add vodka!"
+4. **Vodka**: proof pills (80/90/100/151/190) top-left under header, bottle right with swipe hint, "Show me my recipe →" + skip link
+5. **Calculator**: scrollable, pre-populated from game, real fruit images
 
-## NEXT SESSION: Mobile Safe Zone (UNRESOLVED)
+## BottlePhysics.jsx (intro bottle) — key architecture
+- Collision polygon traced from bottle pixels; Matter wraps concave neck in convex hull
+- **Image↔polygon alignment**: computed from body.bounds vs definition-space bounds (exact, works despite hull). DON'T guess vertex offsets — the centroid moves with every vertex edit
+- Center of mass moved via Matter.Body.setCentre to y=0.06*renderH (below shoulder)
+- Bottle render size = 42vh, 2:3 aspect (matches old static bottle / CSS wrapper)
+- SPH fluid ported verbatim from LiquidBottle (same params, 280x420 sim space, traced BOTTLE_PROFILE interior, 525ml = ~446 particles)
+- Fluid simulated in BOTTLE-LOCAL frame: world gravity rotated by -bottleAngle each frame; boundary never moves → liquid can't escape (until uncorked)
+- **Perf**: small goo-filtered fluid canvas (bottle-sized + 30px pad) positioned via CSS transform (GPU); redraw skipped when SPH sleeps; Matter enableSleeping kills body jitter; gyro wakes bottle explicitly on tilt change >0.03
+- Cork: sprite region CORK_SRC {420,744,184,188} in cork.png; painted cork at x=-0.011, top y=-0.438 (definition fracs); pops along bottle local up axis, speed 22, no spin, restitution 0.85
 
-**Problem:** iOS Safari has a floating transparent address bar covering ~15% of the bottom of the screen. Content (buttons, text, fruit count) gets hidden behind it.
+## Assets (public/)
+- bottle.png (labeled, vodka screen), bottle-nolabel.png (intro, corked)
+- bottle-nocork.png (intro, after pop), cork.png (sprite at CORK_SRC region)
+- fruit-{lemon,lime,orange,grapefruit}.png
 
-**What needs to happen:**
-- All content on every screen must stay above the toolbar
-- Need a fixed bottom dead zone (~15% of viewport) where nothing renders
-- All layout must use RELATIVE sizing (no fixed px heights) so content flexes to fit the available 85%
-- The canvas aspect ratio must stay correct (not squashed)
-- Need to test on Chrome iOS and Android too
-
-**What was tried and failed (reverted):**
-- `padding-bottom: 15dvh` on #root — children ignored it
-- `height: 85dvh` on #root with overflow hidden — content still overflowed
-- Removing all fixed heights and making everything flex — broke the layout badly
-- Multiple attempts at the flex chain approach didn't constrain children
-
-**Approach for next session:**
-- Consider using a wrapper div with `max-height: 85dvh` and `overflow: hidden`
-- Or set explicit `height: 85dvh` on the `.app-game` class directly
-- The fruit physics canvas needs to maintain its aspect ratio while fitting
-- May need to use `clamp()` or `min()` for element sizes
-- Keep a red dotted debug line at the boundary for visual verification
-
-## Tuned Physics Params
-| Param | Value |
-|-------|-------|
-| Gravity | 1.0 |
-| Bounciness | 0.6 |
-| Friction | 0.2 |
-| Air Resistance | 0.005 |
-| Density | 0.0076 |
-| Spin Damping | 0.05 |
-| Slop | 0.05 |
-| Fruit Scale | 0.12 |
-| Fling Speed | 0.05 |
-
-## TODO
-- [ ] Mobile safe zone (see above)
-- [ ] Gyro not tested on Chrome iPhone
-- [ ] Gyro not tested on Android
-- [ ] Remove gyro debug text before prod
-- [ ] Night Shift: orange/grapefruit look similar under warm display — art fix needed
-- [ ] Remove .kiro/steering/mobile-safe-zone.md or update it once the approach works
+## TODO / next session
+- [ ] Fluid perf still needs work (user said "a little slow" even after optimizations)
+- [ ] Fruit min counts on citrus cards are placeholders (6/5/3/2)
+- [ ] Servings estimate on fruit + vodka screens (planned, not built)
+- [ ] Side padding issue on fruit screen may persist — verify with fullscreen canvas
+- [ ] Gyro untested: Chrome iOS, Android
+- [ ] Game screens can scroll (constraint removed for calculator) — may need per-page lock
+- [ ] Night Shift makes orange/grapefruit similar — art-level fix someday
+- [ ] Swirl idea: per-particle hue variation in limoncello for organic look (user liked it)
+- [ ] iOS status bar area unreachable in Safari browser mode (viewport-fit only helps in PWA)
 
 ## Deploy
-- Staging: `git push origin staging` (auto-deploys via Vercel)
+- Staging: `git push origin staging` (auto-deploys)
 - Prod: `git checkout main && git merge staging && git push origin main`

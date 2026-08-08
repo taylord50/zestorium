@@ -79,7 +79,9 @@ const FLUID_GRAVITY = 0.2;
 const DT = 1;
 const PARTICLE_RADIUS = 5;
 const VELOCITY_DAMPING = 0.97;
-const PARTICLES_PER_ML = 0.85;
+// Perf: fewer, bigger blobs — goo filter hides the difference
+const PARTICLES_PER_ML = 0.55;
+const RENDER_BLOB_SCALE = 2.6; // was 2.0 — compensates for lower particle count
 const FLUID_ML = 525; // ~500-550ml fill
 
 // Fluid sim space (matches LiquidBottle canvas: bottle.png aspect 2:3)
@@ -214,7 +216,11 @@ function simulateFluid(particles, gx, gy, sleep, uncorked) {
     grid[key].push(i);
   }
 
-  const getNeighbors = (p) => {
+  // Build neighbor lists ONCE and reuse for both density and viscosity passes
+  // (was previously computed twice per particle with fresh allocations)
+  const neighborLists = new Array(n);
+  for (let i = 0; i < n; i++) {
+    const p = particles[i];
     const cx = Math.max(0, Math.min(gridW - 1, Math.floor(p.x / cellSize)));
     const cy = Math.max(0, Math.min(gridH - 1, Math.floor(p.y / cellSize)));
     const result = [];
@@ -224,15 +230,17 @@ function simulateFluid(particles, gx, gy, sleep, uncorked) {
         const ny = cy + oy;
         if (nx < 0 || nx >= gridW || ny < 0 || ny >= gridH) continue;
         const cell = grid[ny * gridW + nx];
-        if (cell) result.push(...cell);
+        if (cell) {
+          for (let k = 0; k < cell.length; k++) result.push(cell[k]);
+        }
       }
     }
-    return result;
-  };
+    neighborLists[i] = result;
+  }
 
   for (let i = 0; i < n; i++) {
     const pi = particles[i];
-    const neighbors = getNeighbors(pi);
+    const neighbors = neighborLists[i];
     let density = 0;
     let nearDensity = 0;
     for (const j of neighbors) {
@@ -266,7 +274,7 @@ function simulateFluid(particles, gx, gy, sleep, uncorked) {
 
   for (let i = 0; i < n; i++) {
     const pi = particles[i];
-    const neighbors = getNeighbors(pi);
+    const neighbors = neighborLists[i];
     for (const j of neighbors) {
       if (j <= i) continue;
       const pj = particles[j];
@@ -289,7 +297,8 @@ function simulateFluid(particles, gx, gy, sleep, uncorked) {
   }
 
   // Boundary collision — bottle interior, rounded bottom
-  const RENDER_INSET = PARTICLE_RADIUS * 2 + 5;
+  // Inset matches the drawn blob radius so rendered liquid stays inside the glass
+  const RENDER_INSET = PARTICLE_RADIUS * RENDER_BLOB_SCALE + 5;
   const bottomY = IMG_BOTTOM * FH - RENDER_INSET;
   const topY = IMG_TOP * FH;
   const bodyLeft = 0.295 * FW;
@@ -569,7 +578,9 @@ function BottlePhysics() {
     const fluidCanvas = fluidCanvasRef.current;
     if (!canvas || !fluidCanvas) return;
     const { w, h } = dims;
-    const dpr = window.devicePixelRatio || 1;
+    // Cap DPR at 2: full-screen canvas at 3x pushes 2.25x more pixels for
+    // imperceptible sharpness gain
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = w * dpr;
     canvas.height = h * dpr;
     const ctx = canvas.getContext('2d');
@@ -652,7 +663,7 @@ function BottlePhysics() {
           if (fluidDirty) {
             fctx.clearRect(0, 0, fcw, fch);
             fctx.fillStyle = 'rgba(255, 244, 170, 0.9)';
-            const r = PARTICLE_RADIUS * 2 * (renderW / FW);
+            const r = PARTICLE_RADIUS * RENDER_BLOB_SCALE * (renderW / FW);
             const cx = fcw / 2 + offNow.x;
             const cy = fch / 2 + offNow.y;
             for (const fp of particles) {
