@@ -182,8 +182,8 @@
 }
 
 .citrus-option-img {
-  width: 28px;
-  height: 28px;
+  width: 48px;
+  height: 48px;
   object-fit: contain;
   margin-bottom: 0.15rem;
 }
@@ -948,7 +948,8 @@ input[type="range"]::-moz-range-thumb {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 2rem 1rem;
+  justify-content: flex-end;
+  padding: 1rem 0.75rem 0.75rem;
   border: 2px solid var(--color-border);
   border-radius: var(--radius);
   background: var(--color-warm-white);
@@ -962,37 +963,47 @@ input[type="range"]::-moz-range-thumb {
   background: var(--color-lemon-light);
 }
 
+.game-option-img-box {
+  width: 100%;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .game-option-emoji {
   font-size: 3rem;
-  margin-bottom: 0.75rem;
 }
 
 .game-option-fruit-img {
-  width: 80px;
-  height: 80px;
+  max-width: 100%;
+  max-height: 100%;
   object-fit: contain;
-  margin-bottom: 0.75rem;
 }
 
 .game-option-fruit-img[alt="Lime"] {
-  width: 68px;
-  height: 68px;
+  max-height: 55px;
 }
 
 .game-option-fruit-img[alt="Orange"] {
-  width: 92px;
-  height: 92px;
+  max-height: 70px;
 }
 
 .game-option-fruit-img[alt="Grapefruit"] {
-  width: 104px;
-  height: 104px;
+  max-height: 80px;
 }
 
 .game-option-label {
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--color-charcoal);
+  margin-top: 0.4rem;
+}
+
+.game-option-min {
+  font-size: 0.7rem;
+  color: var(--color-muted);
+  margin-top: 0.15rem;
 }
 
 .game-option-sublabel {
@@ -1338,8 +1349,17 @@ input[type="range"]::-moz-range-thumb {
   color: var(--color-charcoal);
   text-align: center;
   line-height: 1.4;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.4rem;
   padding: 0 1rem;
+}
+
+.step-question {
+  font-family: var(--font-serif);
+  font-size: min(1.3rem, 5vw);
+  font-weight: 700;
+  color: var(--color-charcoal);
+  text-align: center;
+  margin-bottom: 0.75rem;
 }
 
 /* Card minimum fruit count */
@@ -1397,6 +1417,60 @@ input[type="range"]::-moz-range-thumb {
   font-weight: 700;
   color: var(--color-green);
   margin-top: 0.5rem;
+}
+
+.fruit-tap-hint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--color-muted);
+  pointer-events: none;
+  text-align: center;
+  font-family: var(--font-sans);
+}
+
+.fruit-tap-hint-subtle {
+  opacity: 0.6;
+  font-size: 0.85rem;
+  top: 30%;
+}
+
+/* Swipe hint animation */
+.swipe-hint-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.swipe-arrows {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 1.5rem;
+  color: var(--color-muted);
+  animation: swipeUpDown 2s ease-in-out infinite;
+}
+
+.swipe-arrow-up, .swipe-arrow-down {
+  line-height: 1;
+}
+
+@keyframes swipeUpDown {
+  0%, 100% { transform: translateY(0); }
+  25% { transform: translateY(-6px); }
+  75% { transform: translateY(6px); }
+}
+
+.swipe-hint-text {
+  font-size: 0.7rem;
+  color: var(--color-muted);
+  text-align: center;
+  line-height: 1.3;
 }
 
 .fruit-hint {

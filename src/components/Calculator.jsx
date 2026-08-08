@@ -51,13 +51,13 @@ function FruitSizeSlider({ citrusType, fruitDiameter, onChange }) {
   );
 }
 
-function Calculator({ onInputChange }) {
+function Calculator({ onInputChange, gameDefaults }) {
   const [mode, setMode] = useState('ingredients'); // 'ingredients' | 'servings'
-  const [citrusType, setCitrusType] = useState(DEFAULTS.citrusType);
-  const [alcoholProof, setAlcoholProof] = useState(DEFAULTS.alcoholProof);
-  const [alcoholMl, setAlcoholMl] = useState(DEFAULTS.alcoholMl);
-  const [numFruits, setNumFruits] = useState(CITRUS_DATA[DEFAULTS.citrusType].defaultFruits);
-  const [fruitDiameter, setFruitDiameter] = useState(CITRUS_DATA[DEFAULTS.citrusType].avgDiameter);
+  const [citrusType, setCitrusType] = useState(gameDefaults?.citrusType || DEFAULTS.citrusType);
+  const [alcoholProof, setAlcoholProof] = useState(gameDefaults?.alcoholProof || DEFAULTS.alcoholProof);
+  const [alcoholMl, setAlcoholMl] = useState(gameDefaults?.alcoholMl || DEFAULTS.alcoholMl);
+  const [numFruits, setNumFruits] = useState(gameDefaults?.numFruits || CITRUS_DATA[DEFAULTS.citrusType].defaultFruits);
+  const [fruitDiameter, setFruitDiameter] = useState(CITRUS_DATA[gameDefaults?.citrusType || DEFAULTS.citrusType].avgDiameter);
   const [finalVolumeMl, setFinalVolumeMl] = useState(1000);
   const [targetAbv, setTargetAbv] = useState(DEFAULTS.targetAbv * 100);
   const [targetSweetness, setTargetSweetness] = useState(DEFAULTS.targetSweetness);

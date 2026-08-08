@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CITRUS_DATA } from '../config/citrusData';
 
@@ -34,6 +34,21 @@ function Game({ onComplete, onSkipToCalculator }) {
   const [bottleLevel, setBottleLevel] = useState(0.75);
   const [fruitCount, setFruitCount] = useState(8);
 
+  // Gyro permission — request on first user gesture
+  const gyroGrantedRef = useRef(false);
+  const requestGyro = useCallback(async () => {
+    if (gyroGrantedRef.current) return;
+    try {
+      if (typeof DeviceOrientationEvent !== 'undefined' &&
+          typeof DeviceOrientationEvent.requestPermission === 'function') {
+        const permission = await DeviceOrientationEvent.requestPermission();
+        if (permission === 'granted') gyroGrantedRef.current = true;
+      } else {
+        gyroGrantedRef.current = true;
+      }
+    } catch (e) { /* denied or failed */ }
+  }, []);
+
   const handleCitrus = (type) => {
     setCitrusType(type);
     setFruitCount(CITRUS_DATA[type].defaultFruits);
@@ -56,6 +71,12 @@ function Game({ onComplete, onSkipToCalculator }) {
     });
   };
 
+  // Request gyro on intro button tap (Option A)
+  const handleIntroNext = () => {
+    requestGyro();
+    setStep(1);
+  };
+
   return (
     <div className="game">
       <AnimatePresence mode="wait">
@@ -72,11 +93,11 @@ function Game({ onComplete, onSkipToCalculator }) {
           >
             <p className="intro-tagline">Three ingredients. One week.<br />Your own limoncello.</p>
             <div className="intro-bottle-wrap">
-              <LiquidBottle value={0.8} onChange={() => {}} readOnly liquidColor="rgba(245, 220, 80, 0.9)" />
+              <LiquidBottle value={0.8} onChange={() => {}} readOnly liquidColor="rgba(255, 248, 180, 0.85)" bottleImage="/bottle-nolabel.png" />
             </div>
             <motion.button
               className="game-confirm"
-              onClick={() => setStep(1)}
+              onClick={handleIntroNext}
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
             >
@@ -96,7 +117,8 @@ function Game({ onComplete, onSkipToCalculator }) {
             exit="exit"
             transition={{ duration: 0.25 }}
           >
-            <p className="step-intro">We'll build your recipe from what's in your kitchen.<br />What citrus do you have?</p>
+            <p className="step-intro">We'll build your recipe<br />from what's in your kitchen.</p>
+            <p className="step-question">What citrus do you have?</p>
             <div className="game-options game-options-grid">
               {Object.entries(CITRUS_DATA).map(([key, data]) => (
                 <motion.button
@@ -106,11 +128,13 @@ function Game({ onComplete, onSkipToCalculator }) {
                   whileHover={{ scale: 1.05, y: -4 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <img
-                    src={`/fruit-${key}.png`}
-                    alt={data.label}
-                    className="game-option-fruit-img"
-                  />
+                  <div className="game-option-img-box">
+                    <img
+                      src={`/fruit-${key}.png`}
+                      alt={data.label}
+                      className="game-option-fruit-img"
+                    />
+                  </div>
                   <span className="game-option-label">{data.label}</span>
                   <span className="game-option-min">at least {MIN_FRUITS[key]}</span>
                 </motion.button>
@@ -149,10 +173,10 @@ function Game({ onComplete, onSkipToCalculator }) {
             exit="exit"
             transition={{ duration: 0.25 }}
           >
-            <h2>You'll also need vodka. What do you have?</h2>
+            <h2>You'll also need vodka.<br />What do you have?</h2>
+            <p className="spirit-proof-label">Choose your proof</p>
             <div className="spirit-bottle-layout">
               <div className="spirit-select-side">
-                <p className="spirit-proof-label">Choose your proof</p>
                 {SPIRIT_OPTIONS.map((s) => (
                   <motion.button
                     key={s.proof}
@@ -166,6 +190,13 @@ function Game({ onComplete, onSkipToCalculator }) {
               </div>
               <div className="bottle-side">
                 <LiquidBottle value={bottleLevel} onChange={setBottleLevel} />
+              </div>
+              <div className="swipe-hint-side">
+                <div className="swipe-arrows">
+                  <span className="swipe-arrow-up">↑</span>
+                  <span className="swipe-arrow-down">↓</span>
+                </div>
+                <p className="swipe-hint-text">Swipe to set<br />your amount</p>
               </div>
             </div>
             <motion.button

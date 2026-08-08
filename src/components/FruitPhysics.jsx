@@ -85,12 +85,12 @@ function FruitPhysics({ citrusType, onConfirm }) {
 
     const wallThickness = 50;
     const walls = [
-      // floor
-      Matter.Bodies.rectangle(CANVAS_W / 2, CANVAS_H + wallThickness / 2 - 5, CANVAS_W + 100, wallThickness, { isStatic: true }),
-      // left wall
-      Matter.Bodies.rectangle(-wallThickness / 2 + 5, CANVAS_H / 2, wallThickness, CANVAS_H + 100, { isStatic: true }),
-      // right wall
-      Matter.Bodies.rectangle(CANVAS_W + wallThickness / 2 - 5, CANVAS_H / 2, wallThickness, CANVAS_H + 100, { isStatic: true }),
+      // floor — aligned exactly with canvas bottom (the black border)
+      Matter.Bodies.rectangle(CANVAS_W / 2, CANVAS_H + wallThickness / 2, CANVAS_W + 100, wallThickness, { isStatic: true }),
+      // left wall — flush with canvas edge
+      Matter.Bodies.rectangle(-wallThickness / 2, CANVAS_H / 2, wallThickness, CANVAS_H + 100, { isStatic: true }),
+      // right wall — flush with canvas edge
+      Matter.Bodies.rectangle(CANVAS_W + wallThickness / 2, CANVAS_H / 2, wallThickness, CANVAS_H + 100, { isStatic: true }),
     ];
     Matter.Composite.add(engine.world, walls);
 
@@ -320,6 +320,12 @@ function FruitPhysics({ citrusType, onConfirm }) {
         style={{ touchAction: 'none' }}
       >
         <canvas ref={canvasRef} className="fruit-physics-canvas" />
+        {count === 0 && (
+          <div className="fruit-tap-hint">Tap to add {citrus.label.toLowerCase()}s</div>
+        )}
+        {count > 0 && count < 3 && (
+          <div className="fruit-tap-hint fruit-tap-hint-subtle">Tap to add more</div>
+        )}
       </div>
       <p className="fruit-count">
         {count} {citrus.label.toLowerCase()}{count !== 1 ? 's' : ''}

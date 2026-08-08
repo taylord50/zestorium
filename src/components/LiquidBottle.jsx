@@ -123,7 +123,7 @@ function createParticles(count, fillLevel) {
   return particles;
 }
 
-function LiquidBottle({ value, onChange, readOnly = false, liquidColor = 'rgba(110, 180, 225, 0.9)' }) {
+function LiquidBottle({ value, onChange, readOnly = false, liquidColor = 'rgba(110, 180, 225, 0.9)', bottleImage = '/bottle.png' }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const particlesRef = useRef(null);
@@ -544,10 +544,9 @@ function LiquidBottle({ value, onChange, readOnly = false, liquidColor = 'rgba(1
         {/* Liquid animation behind the bottle artwork */}
         <canvas ref={canvasRef} className="bottle-canvas" style={{ filter: 'url(#goo)' }} />
         {/* Bottle artwork on top */}
-        <img src="/bottle.png" alt="Glass bottle" className="bottle-png-overlay" draggable={false} />
+        <img src={bottleImage} alt="Glass bottle" className="bottle-png-overlay" draggable={false} />
       </div>
       {!readOnly && <p className="bottle-amount-text">~{mlAmount}ml</p>}
-      {!readOnly && <p className="bottle-drag-hint">{dragging ? 'Release to set' : 'Drag up and down'}</p>}
     </div>
   );
 }
