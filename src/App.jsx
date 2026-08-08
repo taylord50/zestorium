@@ -3,6 +3,7 @@ import Calculator from './components/Calculator';
 import Results from './components/Results';
 import Story from './components/Story';
 import Game from './components/Game';
+import BottlePhysics from './components/BottlePhysics';
 // import FruitPhysicsDebug from './components/FruitPhysicsDebug';
 import { calculateByIngredients, calculateByServings } from './engine/calculate';
 import { CITRUS_DATA } from './config/citrusData';
@@ -10,7 +11,7 @@ import './App.css';
 
 function App() {
   const [recipe, setRecipe] = useState(null);
-  const [page, setPage] = useState('game'); // 'game' | 'calculator' | 'story'
+  const [page, setPage] = useState('bottle-proto'); // 'bottle-proto' | 'game' | 'calculator' | 'story'
   const [gameDefaults, setGameDefaults] = useState(null);
   // const [debugFruit, setDebugFruit] = useState(true); // start on fruit step for debugging
 
@@ -68,6 +69,10 @@ function App() {
       });
     }
   };
+
+  if (page === 'bottle-proto') {
+    return <BottlePhysics />;
+  }
 
   if (page === 'story') {
     return <Story onBack={() => setPage('calculator')} />;
