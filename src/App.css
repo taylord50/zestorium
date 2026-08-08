@@ -899,6 +899,8 @@ input[type="range"]::-moz-range-thumb {
 .app-game .header {
   margin-bottom: 0;
   padding: 0 1rem;
+  position: relative;
+  z-index: 5;
 }
 
 .app-game .logo {
@@ -1261,6 +1263,8 @@ input[type="range"]::-moz-range-thumb {
   font-family: var(--font-sans);
   margin-top: 0.75rem;
   box-shadow: var(--shadow);
+  position: relative;
+  z-index: 5;
 }
 
 .game-confirm:hover {

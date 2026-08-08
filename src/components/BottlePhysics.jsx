@@ -57,16 +57,17 @@ function BottlePhysics() {
     img.onload = () => { bottleImgRef.current = img; };
   }, []);
 
-  // Measure container
+  // Measure container — but use full screen for physics
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    setDims({ w: rect.width, h: rect.height });
+    // Store wrapper rect for positioning reference, but use screen dims for physics
+    setDims({ w: window.innerWidth, h: window.innerHeight, wrapperRect: rect });
   }, []);
 
-  // Bottle render size: fill the container (which is 42vh via CSS)
-  const renderH = dims.h * 0.9;
+  // Bottle render size: same as old 42vh bottle
+  const renderH = window.innerHeight * 0.42;
   const renderW = renderH * (2 / 3);
 
   // Initialize physics
@@ -78,7 +79,7 @@ function BottlePhysics() {
     engine.gravity.x = 0;
     engineRef.current = engine;
 
-    // Create bottle body — starts above screen, falls in
+    // Create bottle body — starts above the screen, falls in
     const vertices = BOTTLE_VERTICES.map(v => ({
       x: v.x * renderW,
       y: v.y * renderH,
@@ -98,20 +99,15 @@ function BottlePhysics() {
       Matter.Composite.add(engine.world, bottle);
     }
 
-    // Walls — floor at bottom of wrapper, left/right at screen edges
-    // The canvas maps to the wrapper dimensions, but we want walls at actual screen edges
-    // Screen width in canvas coordinates: screen is wider than wrapper
-    const screenW = window.innerWidth;
-    const wrapperW = w; // canvas/wrapper width
-    const extraSide = ((screenW - wrapperW) / 2) * (w / wrapperW); // extra space in canvas coords
+    // Walls — full screen boundaries
     const wallThickness = 60;
     const walls = [
-      // Floor
-      Matter.Bodies.rectangle(w / 2, h + wallThickness / 2, screenW + 200, wallThickness, { isStatic: true, friction: p.friction, frictionStatic: p.frictionStatic }),
+      // Floor at bottom of screen
+      Matter.Bodies.rectangle(w / 2, h + wallThickness / 2, w + 200, wallThickness, { isStatic: true, friction: p.friction, frictionStatic: p.frictionStatic }),
       // Left wall at screen edge
-      Matter.Bodies.rectangle(-extraSide - wallThickness / 2, h / 2, wallThickness, h * 3, { isStatic: true }),
+      Matter.Bodies.rectangle(-wallThickness / 2, h / 2, wallThickness, h * 3, { isStatic: true }),
       // Right wall at screen edge
-      Matter.Bodies.rectangle(w + extraSide + wallThickness / 2, h / 2, wallThickness, h * 3, { isStatic: true }),
+      Matter.Bodies.rectangle(w + wallThickness / 2, h / 2, wallThickness, h * 3, { isStatic: true }),
     ];
     Matter.Composite.add(engine.world, walls);
 
@@ -217,13 +213,21 @@ function BottlePhysics() {
       <div
         className="liquid-bottle-wrapper"
         ref={containerRef}
-        onTouchStart={() => { if (!gyroEnabledRef.current) enableGyro(); }}
-        onClick={() => { if (!gyroEnabledRef.current) enableGyro(); }}
-        style={{ touchAction: 'none', overflow: 'visible' }}
+        style={{ touchAction: 'none' }}
       >
+        {/* Full-screen canvas for bottle physics */}
         <canvas
           ref={canvasRef}
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible' }}
+          onTouchStart={() => { if (!gyroEnabledRef.current) enableGyro(); }}
+          onClick={() => { if (!gyroEnabledRef.current) enableGyro(); }}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100dvh',
+            zIndex: 1,
+          }}
         />
       </div>
     </div>
