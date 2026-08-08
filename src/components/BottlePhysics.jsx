@@ -57,13 +57,15 @@ function BottlePhysics() {
     img.onload = () => { bottleImgRef.current = img; };
   }, []);
 
-  // Measure container — but use full screen for physics
+  // Measure container — use actual visible viewport for physics
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    // Store wrapper rect for positioning reference, but use screen dims for physics
-    setDims({ w: window.innerWidth, h: window.innerHeight, wrapperRect: rect });
+    // Use clientWidth to avoid scrollbar/safe-area issues
+    const w = document.documentElement.clientWidth;
+    const h = window.innerHeight;
+    setDims({ w, h, wrapperRect: rect });
   }, []);
 
   // Bottle render size: same as old 42vh bottle
@@ -93,9 +95,9 @@ function BottlePhysics() {
 
     const bottle = Matter.Bodies.fromVertices(w / 2, -renderH * 0.5, [vertices], {
       restitution: p.restitution,
-      friction: p.friction,
-      frictionStatic: p.frictionStatic,
-      frictionAir: 0.002, // very low air resistance so gravity accelerates naturally
+      friction: 10, // extremely high friction — bottle pivots, doesn't slide
+      frictionStatic: 10,
+      frictionAir: 0.002,
       density: p.density,
       render: { visible: false },
     });
@@ -105,19 +107,34 @@ function BottlePhysics() {
       Matter.Composite.add(engine.world, bottle);
     }
 
-    // Walls — flush with screen edges, floor above button
+    // Walls — flush with visible screen edges
     const wallThickness = 60;
     const walls = [
-      // Floor — above the "Let's make some" button
-      Matter.Bodies.rectangle(w / 2, floorY + wallThickness / 2, w + 200, wallThickness, { isStatic: true, friction: p.friction, frictionStatic: p.frictionStatic }),
-      // Left wall — inner face at x=0
-      Matter.Bodies.rectangle(-wallThickness / 2, h / 2, wallThickness, h * 3, { isStatic: true }),
-      // Right wall — inner face at x=w
-      Matter.Bodies.rectangle(w + wallThickness / 2, h / 2, wallThickness, h * 3, { isStatic: true }),
+      // Floor
+      Matter.Bodies.rectangle(w / 2, floorY + wallThickness / 2, w * 3, wallThickness, { isStatic: true, friction: 10, frictionStatic: 10 }),
+      // Left wall — positioned so inner face is at x=0
+      Matter.Bodies.rectangle(-wallThickness / 2, h / 2, wallThickness, h * 3, { isStatic: true, friction: 0.5 }),
+      // Right wall — positioned so inner face is at x=w
+      Matter.Bodies.rectangle(w + wallThickness / 2, h / 2, wallThickness, h * 3, { isStatic: true, friction: 0.5 }),
     ];
     Matter.Composite.add(engine.world, walls);
 
-    // Disable gyro until bottle lands — check when bottle velocity is near zero
+    // Reduce friction once bottle tilts past 45 degrees (so it can slide after tipping)
+    const frictionCheck = setInterval(() => {
+      const b = bottleBodyRef.current;
+      if (!b) return;
+      const angle = Math.abs(b.angle % (Math.PI * 2));
+      const tiltDeg = (angle > Math.PI ? Math.PI * 2 - angle : angle) * (180 / Math.PI);
+      if (tiltDeg > 45) {
+        b.friction = 0.3;
+        b.frictionStatic = 0.5;
+      } else if (landedRef.current) {
+        b.friction = 10;
+        b.frictionStatic = 10;
+      }
+    }, 50);
+
+    // Disable gyro until bottle lands
     const landCheck = setInterval(() => {
       const b = bottleBodyRef.current;
       if (b && b.position.y > floorY - renderH && Math.abs(b.velocity.y) < 0.5) {
@@ -128,6 +145,7 @@ function BottlePhysics() {
 
     return () => {
       clearInterval(landCheck);
+      clearInterval(frictionCheck);
       Matter.Engine.clear(engine);
       if (renderLoopRef.current) cancelAnimationFrame(renderLoopRef.current);
     };
