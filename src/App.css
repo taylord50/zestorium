@@ -1309,7 +1309,8 @@ input[type="range"]::-moz-range-thumb {
 .spirit-select-side {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
+  padding-top: 0.25rem;
   gap: 0.5rem;
   flex-shrink: 0;
 }
@@ -1350,6 +1351,11 @@ input[type="range"]::-moz-range-thumb {
   justify-content: center;
   min-height: 0;
   gap: 0.25rem;
+}
+
+/* Keep the bottle from stretching so the swipe hint hugs it */
+.bottle-side .liquid-bottle-container {
+  flex: 0 0 auto;
 }
 
 /* Back button */
@@ -1425,10 +1431,12 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .fruit-physics-fullscreen {
-  position: absolute;
+  /* Fixed to the real viewport so fruit is visible all the way to the
+     top of the screen, behind the Zestorium header text */
+  position: fixed;
   inset: 0;
-  width: 100%;
-  height: 100%;
+  width: 100vw;
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -1461,7 +1469,7 @@ input[type="range"]::-moz-range-thumb {
 
 .fruit-physics-ui {
   position: absolute;
-  bottom: 1.5rem;
+  bottom: 4rem;
   left: 0;
   right: 0;
   display: flex;
@@ -1472,11 +1480,14 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .fruit-physics-ui .fruit-count {
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: 1.5rem;
+  font-weight: 800;
   color: var(--color-green);
   margin-bottom: 0.4rem;
-  text-shadow: 0 1px 3px rgba(255,255,255,0.8);
+  background: rgba(255, 255, 255, 0.85);
+  padding: 0.2rem 1rem;
+  border-radius: 999px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
 }
 
 .fruit-physics-ui .game-confirm {

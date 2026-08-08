@@ -708,14 +708,6 @@ function BottlePhysics() {
           ctx.restore();
         }
 
-        // Debug: red dot at center of mass
-        ctx.beginPath();
-        ctx.arc(pos.x, pos.y, 5, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255, 40, 40, 0.9)';
-        ctx.fill();
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
       }
 
       renderLoopRef.current = requestAnimationFrame(loop);
