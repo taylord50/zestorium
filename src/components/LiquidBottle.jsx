@@ -433,23 +433,24 @@ function LiquidBottle({ value, onChange }) {
     };
   }, []);
 
-  const enableGyro = async () => {
-    try {
-      if (typeof DeviceOrientationEvent !== 'undefined' &&
-          typeof DeviceOrientationEvent.requestPermission === 'function') {
-        const permission = await DeviceOrientationEvent.requestPermission();
-        if (permission === 'granted') {
+  // Auto-enable gyro on mount
+  useEffect(() => {
+    const enableGyro = async () => {
+      try {
+        if (typeof DeviceOrientationEvent !== 'undefined' &&
+            typeof DeviceOrientationEvent.requestPermission === 'function') {
+          const permission = await DeviceOrientationEvent.requestPermission();
+          if (permission === 'granted') {
+            window.addEventListener('deviceorientation', handleOrientation);
+            setGyroEnabled(true);
+          }
+        } else {
           window.addEventListener('deviceorientation', handleOrientation);
           setGyroEnabled(true);
         }
-      } else {
-        window.addEventListener('deviceorientation', handleOrientation);
-        setGyroEnabled(true);
-      }
-    } catch (e) {}
-  };
-
-  useEffect(() => {
+      } catch (e) { /* no gyro available */ }
+    };
+    enableGyro();
     return () => window.removeEventListener('deviceorientation', handleOrientation);
   }, [handleOrientation]);
 
@@ -516,9 +517,6 @@ function LiquidBottle({ value, onChange }) {
       </div>
       <p className="bottle-amount-text">~{mlAmount}ml</p>
       <p className="bottle-drag-hint">{dragging ? 'Release to set' : 'Drag up and down'}</p>
-      {!gyroEnabled && (
-        <button className="gyro-btn" onClick={enableGyro}>📱 Enable tilt</button>
-      )}
     </div>
   );
 }
