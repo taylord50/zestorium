@@ -1,200 +1,185 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import Matter from 'matter-js';
 import { CITRUS_DATA } from '../config/citrusData';
 
 /**
- * FruitPhysics — Tap to add fruits, drag to move, fling off screen to remove.
- * Gyro tilts gravity. Fruits collide with each other and screen edges.
+ * FruitPhysics — Matter.js physics with real fruit PNG rendering.
+ * Tap to add, drag to move, fling off edge to remove.
+ * Tilt enabled automatically on devices with gyro.
  */
 
 const CANVAS_W = 320;
-const CANVAS_H = 480;
-const GRAVITY = 0.3;
-const BOUNCE = 0.5;
-const FRICTION = 0.98;
-const FLOOR_Y = CANVAS_H - 10;
-const WALL_LEFT = 10;
-const WALL_RIGHT = CANVAS_W - 10;
+const CANVAS_H = 500;
 
-// Fruit dimensions (ellipse radii)
-const FRUIT_SIZES = {
-  lemon: { rx: 22, ry: 15, color: '#F5E06B' },
-  lime: { rx: 14, ry: 13, color: '#7BC67E' },
-  orange: { rx: 20, ry: 20, color: '#F5A623' },
-  grapefruit: { rx: 26, ry: 25, color: '#F5908A' },
+// Fruit image data: bounding boxes for cropping the PNG sprites
+const FRUIT_DATA = {
+  lemon: {
+    img: '/fruit-lemon.png',
+    bbox: { x: 161, y: 232, w: 712, h: 518 },
+    rx: 356, ry: 259,
+  },
+  lime: {
+    img: '/fruit-lime.png',
+    bbox: { x: 192, y: 231, w: 648, h: 508 },
+    rx: 324, ry: 254,
+  },
+  orange: {
+    img: '/fruit-orange.png',
+    bbox: { x: 195, y: 201, w: 637, h: 576 },
+    rx: 318, ry: 288,
+  },
+  grapefruit: {
+    img: '/fruit-grapefruit.png',
+    bbox: { x: 204, y: 203, w: 623, h: 575 },
+    rx: 312, ry: 288,
+  },
+};
+
+// Tuned physics parameters (from debug tuning session)
+const PARAMS = {
+  fruitScale: 0.12,
+  gravity: 1.0,
+  restitution: 0.6,
+  friction: 0.2,
+  frictionAir: 0.005,
+  flingMultiplier: 0.05,
+  density: 0.0076,
+  slop: 0.05,
+};
+
+// Per-fruit size/deformation settings
+const FRUIT_VARIATION = {
+  lemon: { sizeVariation: 10, deformation: 15 },
+  lime: { sizeVariation: 10, deformation: 15 },
+  orange: { sizeVariation: 10, deformation: 5 },
+  grapefruit: { sizeVariation: 10, deformation: 5 },
 };
 
 function FruitPhysics({ citrusType, onConfirm }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
+  const engineRef = useRef(null);
+  const renderLoopRef = useRef(null);
   const fruitsRef = useRef([]);
-  const animRef = useRef(null);
-  const gravityRef = useRef({ x: 0, y: GRAVITY });
-  const dragRef = useRef(null); // { index, offsetX, offsetY, lastX, lastY }
+  const dragRef = useRef(null);
   const [count, setCount] = useState(0);
-  const [gyroEnabled, setGyroEnabled] = useState(false);
+  const fruitImgRef = useRef(null);
 
-  const fruitDef = FRUIT_SIZES[citrusType] || FRUIT_SIZES.lemon;
+  const fruitDef = FRUIT_DATA[citrusType] || FRUIT_DATA.lemon;
+  const variation = FRUIT_VARIATION[citrusType] || FRUIT_VARIATION.lemon;
   const citrus = CITRUS_DATA[citrusType];
+
+  // Load fruit image
+  useEffect(() => {
+    const img = new Image();
+    img.src = fruitDef.img;
+    img.onload = () => { fruitImgRef.current = img; };
+    return () => { fruitImgRef.current = null; };
+  }, [citrusType]);
+
+  // Initialize Matter.js engine
+  useEffect(() => {
+    const engine = Matter.Engine.create();
+    engine.gravity.y = PARAMS.gravity;
+    engineRef.current = engine;
+
+    const wallThickness = 50;
+    const walls = [
+      // floor
+      Matter.Bodies.rectangle(CANVAS_W / 2, CANVAS_H + wallThickness / 2 - 5, CANVAS_W + 100, wallThickness, { isStatic: true }),
+      // left wall
+      Matter.Bodies.rectangle(-wallThickness / 2 + 5, CANVAS_H / 2, wallThickness, CANVAS_H + 100, { isStatic: true }),
+      // right wall
+      Matter.Bodies.rectangle(CANVAS_W + wallThickness / 2 - 5, CANVAS_H / 2, wallThickness, CANVAS_H + 100, { isStatic: true }),
+    ];
+    Matter.Composite.add(engine.world, walls);
+
+    return () => {
+      Matter.Engine.clear(engine);
+      if (renderLoopRef.current) cancelAnimationFrame(renderLoopRef.current);
+    };
+  }, []);
+
+  // Auto-enable tilt
+  const handleOrientation = useCallback((e) => {
+    if (e.gamma === null || !engineRef.current) return;
+    let tiltX = e.gamma / 90;
+    if (Math.abs(tiltX) < 0.06) tiltX = 0;
+    tiltX = Math.max(-1, Math.min(1, tiltX));
+    engineRef.current.gravity.x = tiltX * PARAMS.gravity * 2;
+  }, []);
+
+  useEffect(() => {
+    const enableGyro = async () => {
+      try {
+        if (typeof DeviceOrientationEvent !== 'undefined' &&
+            typeof DeviceOrientationEvent.requestPermission === 'function') {
+          const permission = await DeviceOrientationEvent.requestPermission();
+          if (permission === 'granted') {
+            window.addEventListener('deviceorientation', handleOrientation);
+          }
+        } else {
+          window.addEventListener('deviceorientation', handleOrientation);
+        }
+      } catch (e) { /* no gyro available */ }
+    };
+    enableGyro();
+    return () => window.removeEventListener('deviceorientation', handleOrientation);
+  }, [handleOrientation]);
 
   // Add a fruit at position
   const addFruit = (x, y) => {
-    const fruits = fruitsRef.current;
-    fruits.push({
-      x: x || CANVAS_W / 2 + (Math.random() - 0.5) * 60,
-      y: y || 30,
-      vx: (Math.random() - 0.5) * 2,
-      vy: 0,
-      rx: fruitDef.rx + (Math.random() - 0.5) * 3,
-      ry: fruitDef.ry + (Math.random() - 0.5) * 2,
-      rotation: Math.random() * Math.PI * 2,
-      vr: (Math.random() - 0.5) * 0.05,
-      squish: 1, // scale for squish animation
+    const engine = engineRef.current;
+    if (!engine) return;
+
+    const sizeRandom = 1 + ((Math.random() * 2 - 1) * (variation.sizeVariation / 100));
+    const deformRandom = 1 + ((Math.random() * 2 - 1) * (variation.deformation / 100));
+    const scaleRx = fruitDef.rx * PARAMS.fruitScale * sizeRandom * deformRandom;
+    const scaleRy = fruitDef.ry * PARAMS.fruitScale * sizeRandom;
+
+    // Ellipse polygon (20 vertices)
+    const vertices = [];
+    const numSides = 20;
+    for (let i = 0; i < numSides; i++) {
+      const angle = (i / numSides) * Math.PI * 2;
+      vertices.push({
+        x: Math.cos(angle) * scaleRx,
+        y: Math.sin(angle) * scaleRy,
+      });
+    }
+
+    const body = Matter.Bodies.fromVertices(x, y, [vertices], {
+      restitution: PARAMS.restitution,
+      friction: PARAMS.friction,
+      frictionAir: PARAMS.frictionAir,
+      density: PARAMS.density,
+      slop: PARAMS.slop,
+      render: { visible: false },
     });
-    setCount(fruits.length);
+
+    if (!body) return;
+
+    Matter.Composite.add(engine.world, body);
+    fruitsRef.current.push({ body, scaleRx, scaleRy });
+    setCount(fruitsRef.current.length);
   };
 
-  // Physics step
-  function simulate(fruits) {
-    const g = gravityRef.current;
-    const n = fruits.length;
-
-    for (let i = n - 1; i >= 0; i--) {
-      const f = fruits[i];
-
-      // Skip if being dragged
-      if (dragRef.current && dragRef.current.index === i) continue;
-
-      // Gravity
-      f.vx += g.x;
-      f.vy += g.y;
-
-      // Friction
-      f.vx *= FRICTION;
-      f.vy *= FRICTION;
-      f.vr *= 0.98;
-
-      // Move
-      f.x += f.vx;
-      f.y += f.vy;
-      f.rotation += f.vr;
-
-      // Squish recovery
-      f.squish += (1 - f.squish) * 0.2;
-
-      // Remove if off screen
-      if (f.x < -60 || f.x > CANVAS_W + 60 || f.y < -100 || f.y > CANVAS_H + 60) {
+  // Remove fruits that are off screen
+  const cleanupFruits = () => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    const fruits = fruitsRef.current;
+    for (let i = fruits.length - 1; i >= 0; i--) {
+      const pos = fruits[i].body.position;
+      if (pos.y > CANVAS_H + 100 || pos.y < -200 || pos.x < -100 || pos.x > CANVAS_W + 100) {
+        Matter.Composite.remove(engine.world, fruits[i].body);
         fruits.splice(i, 1);
         setCount(fruits.length);
-        continue;
-      }
-
-      // Wall collisions
-      if (f.x - f.rx < WALL_LEFT) {
-        f.x = WALL_LEFT + f.rx;
-        f.vx = Math.abs(f.vx) * BOUNCE;
-        f.vr += f.vy * 0.01;
-        f.squish = 0.85;
-      }
-      if (f.x + f.rx > WALL_RIGHT) {
-        f.x = WALL_RIGHT - f.rx;
-        f.vx = -Math.abs(f.vx) * BOUNCE;
-        f.vr -= f.vy * 0.01;
-        f.squish = 0.85;
-      }
-      if (f.y + f.ry > FLOOR_Y) {
-        f.y = FLOOR_Y - f.ry;
-        f.vy = -Math.abs(f.vy) * BOUNCE;
-        f.vr += f.vx * 0.02;
-        f.squish = 0.85;
-        // Stop tiny bounces
-        if (Math.abs(f.vy) < 0.5) f.vy = 0;
       }
     }
+  };
 
-    // Fruit-fruit collision (circle approximation using average radius)
-    for (let i = 0; i < fruits.length; i++) {
-      for (let j = i + 1; j < fruits.length; j++) {
-        const a = fruits[i];
-        const b = fruits[j];
-        const dx = b.x - a.x;
-        const dy = b.y - a.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        const minDist = (a.rx + a.ry) / 2 + (b.rx + b.ry) / 2;
-
-        if (dist < minDist && dist > 0.001) {
-          // Separate
-          const overlap = minDist - dist;
-          const nx = dx / dist;
-          const ny = dy / dist;
-
-          // Skip if one is being dragged
-          const aFixed = dragRef.current && dragRef.current.index === i;
-          const bFixed = dragRef.current && dragRef.current.index === j;
-
-          if (!aFixed && !bFixed) {
-            a.x -= nx * overlap * 0.5;
-            a.y -= ny * overlap * 0.5;
-            b.x += nx * overlap * 0.5;
-            b.y += ny * overlap * 0.5;
-          } else if (!aFixed) {
-            a.x -= nx * overlap;
-            a.y -= ny * overlap;
-          } else if (!bFixed) {
-            b.x += nx * overlap;
-            b.y += ny * overlap;
-          }
-
-          // Bounce
-          const dvx = b.vx - a.vx;
-          const dvy = b.vy - a.vy;
-          const relVel = dvx * nx + dvy * ny;
-          if (relVel < 0) {
-            const impulse = relVel * 0.5;
-            if (!aFixed) { a.vx += nx * impulse; a.vy += ny * impulse; }
-            if (!bFixed) { b.vx -= nx * impulse; b.vy -= ny * impulse; }
-          }
-
-          // Squish
-          a.squish = 0.9;
-          b.squish = 0.9;
-        }
-      }
-    }
-  }
-
-  // Render
-  function render(ctx, fruits) {
-    ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
-
-    for (const f of fruits) {
-      ctx.save();
-      ctx.translate(f.x, f.y);
-      ctx.rotate(f.rotation);
-      ctx.scale(f.squish, 2 - f.squish); // squish vertically when compressed
-
-      // Draw ellipse
-      ctx.beginPath();
-      ctx.ellipse(0, 0, f.rx, f.ry, 0, 0, Math.PI * 2);
-      ctx.fillStyle = fruitDef.color;
-      ctx.fill();
-      ctx.strokeStyle = '#2A2A2A';
-      ctx.lineWidth = 3;
-      ctx.stroke();
-
-      // Small stem nub
-      ctx.beginPath();
-      ctx.moveTo(0, -f.ry);
-      ctx.lineTo(-2, -f.ry - 6);
-      ctx.lineTo(2, -f.ry - 5);
-      ctx.strokeStyle = '#4A7A3A';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      ctx.restore();
-    }
-  }
-
-  // Animation loop
+  // Render loop
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -203,17 +188,44 @@ function FruitPhysics({ citrusType, onConfirm }) {
     canvas.height = CANVAS_H;
 
     const loop = () => {
-      try {
-        const fruits = fruitsRef.current;
-        simulate(fruits);
-        render(ctx, fruits);
-      } catch (e) {
-        console.error(e);
+      const engine = engineRef.current;
+      if (!engine) { renderLoopRef.current = requestAnimationFrame(loop); return; }
+
+      Matter.Engine.update(engine, 1000 / 60);
+      cleanupFruits();
+
+      ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+      const img = fruitImgRef.current;
+      const bb = fruitDef.bbox;
+
+      for (const { body, scaleRx, scaleRy } of fruitsRef.current) {
+        const pos = body.position;
+        const angle = body.angle;
+
+        ctx.save();
+        ctx.translate(pos.x, pos.y);
+        ctx.rotate(angle);
+
+        if (img && bb) {
+          ctx.drawImage(
+            img,
+            bb.x, bb.y, bb.w, bb.h,
+            -scaleRx, -scaleRy, scaleRx * 2, scaleRy * 2
+          );
+        } else {
+          ctx.beginPath();
+          ctx.ellipse(0, 0, scaleRx, scaleRy, 0, 0, Math.PI * 2);
+          ctx.fillStyle = '#ccc';
+          ctx.fill();
+        }
+        ctx.restore();
       }
-      animRef.current = requestAnimationFrame(loop);
+
+      renderLoopRef.current = requestAnimationFrame(loop);
     };
     loop();
-    return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
+
+    return () => { if (renderLoopRef.current) cancelAnimationFrame(renderLoopRef.current); };
   }, [citrusType]);
 
   // Pointer: tap to add, drag to move, fling to remove
@@ -224,23 +236,21 @@ function FruitPhysics({ citrusType, onConfirm }) {
     const x = (e.clientX - rect.left) * scaleX;
     const y = (e.clientY - rect.top) * scaleY;
 
-    // Check if tapping on existing fruit
-    const fruits = fruitsRef.current;
-    for (let i = fruits.length - 1; i >= 0; i--) {
-      const f = fruits[i];
-      const dx = (x - f.x) / f.rx;
-      const dy = (y - f.y) / f.ry;
-      if (dx * dx + dy * dy < 1.5) {
-        // Grabbed a fruit
-        dragRef.current = { index: i, lastX: x, lastY: y, startTime: Date.now() };
-        e.currentTarget.setPointerCapture(e.pointerId);
-        return;
-      }
-    }
+    const engine = engineRef.current;
+    if (!engine) return;
 
-    // Tap on empty space: add a fruit
-    addFruit(x, y);
-    e.currentTarget.setPointerCapture(e.pointerId);
+    // Check if clicking on existing fruit
+    const bodies = Matter.Composite.allBodies(engine.world);
+    const clickedBody = bodies.find(b => !b.isStatic && Matter.Bounds.contains(b.bounds, { x, y }));
+
+    if (clickedBody) {
+      dragRef.current = { body: clickedBody, lastX: x, lastY: y };
+      Matter.Body.setStatic(clickedBody, true);
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } else {
+      addFruit(x, y);
+      e.currentTarget.setPointerCapture(e.pointerId);
+    }
   };
 
   const handlePointerMove = (e) => {
@@ -252,53 +262,23 @@ function FruitPhysics({ citrusType, onConfirm }) {
     const y = (e.clientY - rect.top) * scaleY;
 
     const d = dragRef.current;
-    const f = fruitsRef.current[d.index];
-    if (!f) { dragRef.current = null; return; }
-
-    // Move fruit to pointer
-    f.vx = (x - d.lastX) * 0.5;
-    f.vy = (y - d.lastY) * 0.5;
-    f.x = x;
-    f.y = y;
+    d.velX = (x - d.lastX);
+    d.velY = (y - d.lastY);
+    Matter.Body.setPosition(d.body, { x, y });
     d.lastX = x;
     d.lastY = y;
   };
 
   const handlePointerUp = () => {
-    if (dragRef.current) {
-      // The fruit keeps its velocity from the drag (fling!)
-      dragRef.current = null;
-    }
+    if (!dragRef.current) return;
+    const d = dragRef.current;
+    Matter.Body.setStatic(d.body, false);
+    Matter.Body.setVelocity(d.body, {
+      x: (d.velX || 0) * PARAMS.flingMultiplier * 10,
+      y: (d.velY || 0) * PARAMS.flingMultiplier * 10,
+    });
+    dragRef.current = null;
   };
-
-  // Gyro
-  const handleOrientation = useCallback((e) => {
-    if (e.gamma === null) return;
-    let tiltX = -(e.gamma / 90);
-    if (Math.abs(tiltX) < 0.06) tiltX = 0;
-    tiltX = Math.max(-1, Math.min(1, tiltX));
-    gravityRef.current = { x: tiltX * GRAVITY * 2, y: GRAVITY };
-  }, []);
-
-  const enableGyro = async () => {
-    try {
-      if (typeof DeviceOrientationEvent !== 'undefined' &&
-          typeof DeviceOrientationEvent.requestPermission === 'function') {
-        const permission = await DeviceOrientationEvent.requestPermission();
-        if (permission === 'granted') {
-          window.addEventListener('deviceorientation', handleOrientation);
-          setGyroEnabled(true);
-        }
-      } else {
-        window.addEventListener('deviceorientation', handleOrientation);
-        setGyroEnabled(true);
-      }
-    } catch (e) {}
-  };
-
-  useEffect(() => {
-    return () => window.removeEventListener('deviceorientation', handleOrientation);
-  }, [handleOrientation]);
 
   return (
     <div className="fruit-physics-container">
@@ -316,13 +296,10 @@ function FruitPhysics({ citrusType, onConfirm }) {
       <p className="fruit-count">
         {count} {citrus.label.toLowerCase()}{count !== 1 ? 's' : ''}
       </p>
-      <p className="fruit-hint">Tap to add. Drag to move. Fling off screen to remove.</p>
+      <p className="fruit-hint">Tap to add. Drag to move. Fling off edge to remove.</p>
       <button className="game-confirm" onClick={() => onConfirm(count)}>
         That's how many I have →
       </button>
-      {!gyroEnabled && (
-        <button className="gyro-btn" onClick={enableGyro}>📱 Enable tilt</button>
-      )}
     </div>
   );
 }

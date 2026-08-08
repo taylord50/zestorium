@@ -3,6 +3,7 @@ import Calculator from './components/Calculator';
 import Results from './components/Results';
 import Story from './components/Story';
 import Game from './components/Game';
+// import FruitPhysicsDebug from './components/FruitPhysicsDebug';
 import { calculateByIngredients, calculateByServings } from './engine/calculate';
 import { CITRUS_DATA } from './config/citrusData';
 import './App.css';
@@ -11,6 +12,7 @@ function App() {
   const [recipe, setRecipe] = useState(null);
   const [page, setPage] = useState('game'); // 'game' | 'calculator' | 'story'
   const [gameDefaults, setGameDefaults] = useState(null);
+  // const [debugFruit, setDebugFruit] = useState(true); // start on fruit step for debugging
 
   const handleInputChange = (state) => {
     let result;
@@ -72,6 +74,17 @@ function App() {
   }
 
   if (page === 'game') {
+    /* Debug: uncomment to skip straight to fruit physics tuning
+    if (debugFruit) {
+      return (
+        <div className="app app-game" style={{ maxWidth: '100%', flexDirection: 'row', padding: 0 }}>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100dvh' }}>
+            <FruitPhysicsDebug citrusType="lemon" />
+          </div>
+        </div>
+      );
+    }
+    */
     return (
       <div className="app app-game">
         <header className="header">
