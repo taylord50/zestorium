@@ -440,7 +440,7 @@ function LiquidBottle({ value, onChange }) {
     try {
       if (typeof DeviceOrientationEvent !== 'undefined' &&
           typeof DeviceOrientationEvent.requestPermission === 'function') {
-        setGyroDebug('has requestPermission, calling...');
+        setGyroDebug('requesting via click...');
         const permission = await DeviceOrientationEvent.requestPermission();
         setGyroDebug('permission: ' + permission);
         if (permission === 'granted') {
@@ -449,7 +449,7 @@ function LiquidBottle({ value, onChange }) {
           setGyroDebug('granted + listening');
         }
       } else {
-        setGyroDebug('no requestPermission, adding listener directly');
+        setGyroDebug('no requestPermission needed');
         window.addEventListener('deviceorientation', handleOrientation);
         setGyroEnabled(true);
       }
@@ -458,15 +458,12 @@ function LiquidBottle({ value, onChange }) {
     }
   }, [handleOrientation, gyroEnabled]);
 
-  // Try on mount (succeeds if permission already cached or if requestPermission doesn't exist)
   useEffect(() => {
-    enableGyro();
     return () => window.removeEventListener('deviceorientation', handleOrientation);
   }, [handleOrientation]);
 
-  // Drag — also triggers gyro permission on first touch (user gesture required by iOS)
+  // Drag
   const handlePointerDown = (e) => {
-    if (!gyroEnabled) enableGyro();
     setDragging(true);
     lastDragY.current = e.clientY;
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -497,7 +494,7 @@ function LiquidBottle({ value, onChange }) {
   const mlAmount = Math.round((750 * value) / 25) * 25;
 
   return (
-    <div className="liquid-bottle-container">
+    <div className="liquid-bottle-container" onClick={() => { if (!gyroEnabled) enableGyro(); }}>
       <div
         className="liquid-bottle-wrapper"
         ref={containerRef}
