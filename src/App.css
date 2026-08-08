@@ -1248,11 +1248,11 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .fruit-physics-canvas-wrap {
-  width: calc(100% + 3rem);
-  margin-left: -1.5rem;
-  margin-right: -1.5rem;
-  aspect-ratio: 320 / 270;
+  width: 100vw;
   position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+  aspect-ratio: 320 / 270;
   overflow: hidden;
   background: var(--color-cream);
 }
