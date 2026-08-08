@@ -494,10 +494,12 @@ function LiquidBottle({ value, onChange }) {
   const mlAmount = Math.round((750 * value) / 25) * 25;
 
   return (
-    <div className="liquid-bottle-container" onClick={() => { if (!gyroEnabled) enableGyro(); }}>
+    <div className="liquid-bottle-container">
       <div
         className="liquid-bottle-wrapper"
         ref={containerRef}
+        onTouchStart={() => { if (!gyroEnabled) enableGyro(); }}
+        onClick={() => { if (!gyroEnabled) enableGyro(); }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
