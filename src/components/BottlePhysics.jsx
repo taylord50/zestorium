@@ -9,62 +9,56 @@ import Matter from 'matter-js';
 
 const BOTTLE_IMG = '/bottle-nolabel.png';
 
-// Bottle collision polygon — traced from actual bottle edge pixels
-// Coordinates as fractions from center (-0.5 to 0.5 range)
-// Bottom is flattened for stability
+// Vertices in image-fraction space, relative to image center.
+// From pixel trace: cork top at 6% of image height (-0.44 centered),
+// bottle bottom at ~92% (+0.42 centered), body width ~±0.21, neck ~±0.08.
 const BOTTLE_VERTICES = [
-  // Top of neck — lowered to split the cork curve
-  { x: -0.084, y: -0.40 },
-  { x: 0.063, y: -0.40 },
-  // Neck
-  { x: 0.068, y: -0.38 },
-  { x: 0.078, y: -0.38 },
-  { x: 0.072, y: -0.30 },
-  { x: 0.073, y: -0.23 },
+  // Flat top — through top of cork
+  { x: -0.07, y: -0.44 },
+  { x: 0.07, y: -0.44 },
+  // Neck (narrow)
+  { x: 0.075, y: -0.35 },
+  { x: 0.073, y: -0.22 },
   // Shoulder transition
-  { x: 0.080, y: -0.18 },
-  { x: 0.169, y: -0.13 },
-  { x: 0.201, y: -0.08 },
+  { x: 0.08, y: -0.17 },
+  { x: 0.13, y: -0.12 },
+  { x: 0.18, y: -0.07 },
+  { x: 0.20, y: -0.02 },
   // Body right
-  { x: 0.204, y: -0.05 },
-  { x: 0.203, y: 0.0 },
-  { x: 0.202, y: 0.10 },
-  { x: 0.203, y: 0.20 },
-  { x: 0.203, y: 0.30 },
-  { x: 0.203, y: 0.37 },
-  // Bottom right corner
-  { x: 0.200, y: 0.39 },
-  // Flat bottom
-  { x: 0.163, y: 0.41 },
-  { x: -0.163, y: 0.41 },
-  // Bottom left corner
-  { x: -0.200, y: 0.39 },
+  { x: 0.205, y: 0.05 },
+  { x: 0.205, y: 0.15 },
+  { x: 0.205, y: 0.25 },
+  { x: 0.205, y: 0.35 },
+  { x: 0.20, y: 0.39 },
+  // Flat bottom — through average of bottom curve
+  { x: 0.17, y: 0.42 },
+  { x: -0.17, y: 0.42 },
   // Body left
-  { x: -0.205, y: 0.37 },
-  { x: -0.205, y: 0.30 },
-  { x: -0.207, y: 0.20 },
-  { x: -0.207, y: 0.10 },
-  { x: -0.212, y: 0.0 },
-  { x: -0.211, y: -0.05 },
+  { x: -0.20, y: 0.39 },
+  { x: -0.207, y: 0.35 },
+  { x: -0.207, y: 0.25 },
+  { x: -0.207, y: 0.15 },
+  { x: -0.207, y: 0.05 },
   // Shoulder left
-  { x: -0.179, y: -0.08 },
-  { x: -0.148, y: -0.13 },
-  { x: -0.098, y: -0.18 },
+  { x: -0.20, y: -0.02 },
+  { x: -0.18, y: -0.07 },
+  { x: -0.13, y: -0.12 },
+  { x: -0.09, y: -0.17 },
   // Neck left
-  { x: -0.092, y: -0.23 },
-  { x: -0.091, y: -0.30 },
-  { x: -0.089, y: -0.38 },
-  { x: -0.084, y: -0.40 },
+  { x: -0.092, y: -0.22 },
+  { x: -0.09, y: -0.35 },
+  { x: -0.07, y: -0.44 },
 ];
 
+// Standard, realistic physics defaults
 const DEFAULT_PARAMS = {
-  gravity: 2.0,
-  friction: 0.95,
-  frictionStatic: 50,
-  frictionAir: 0.005,
-  restitution: 0.1,
-  density: 0.005,
-  gravityScale: 1.5,
+  gravity: 1.0,        // Matter.js default earth-like gravity
+  friction: 0.5,       // typical glass-on-wood sliding friction
+  frictionStatic: 0.8, // slightly higher static than kinetic (standard)
+  frictionAir: 0.01,   // Matter.js default air drag
+  restitution: 0.2,    // glass bottles don't bounce much
+  density: 0.002,      // moderate mass
+  gravityScale: 1.0,   // 1:1 tilt-to-gravity mapping
 };
 
 function BottlePhysics() {
@@ -74,6 +68,7 @@ function BottlePhysics() {
   const bottleBodyRef = useRef(null);
   const renderLoopRef = useRef(null);
   const bottleImgRef = useRef(null);
+  const imgOffsetRef = useRef({ x: 0, y: 0 });
   const [dims, setDims] = useState({ w: 320, h: 560 });
 
   // Load bottle image
@@ -129,6 +124,24 @@ function BottlePhysics() {
     });
 
     if (bottle) {
+      // My vertices are defined relative to the IMAGE CENTER, but Matter.js
+      // repositions the body at the shape's centroid (of the hull it actually built).
+      // Compute the exact offset by comparing the body's world bounds (at angle 0)
+      // against my definition-space bounds. Works regardless of hull/decomposition.
+      const defMinX = Math.min(...vertices.map(v => v.x));
+      const defMinY = Math.min(...vertices.map(v => v.y));
+      // centroid position in definition space:
+      const cX = defMinX - (bottle.bounds.min.x - bottle.position.x);
+      const cY = defMinY - (bottle.bounds.min.y - bottle.position.y);
+
+      // Move center of mass to the base of the neck (y = -0.17 in definition
+      // space) — top-heavy bottle tips over much more easily.
+      const COM_Y = -0.17 * renderH; // definition-space target
+      Matter.Body.setCentre(bottle, { x: 0 - cX, y: COM_Y - cY }, true);
+
+      // Image center (definition origin) relative to new body position:
+      imgOffsetRef.current = { x: 0, y: -COM_Y };
+
       bottleBodyRef.current = bottle;
       Matter.Composite.add(engine.world, bottle);
     }
@@ -241,7 +254,9 @@ function BottlePhysics() {
         ctx.save();
         ctx.translate(pos.x, pos.y);
         ctx.rotate(angle);
-        ctx.drawImage(img, -renderW / 2, -renderH / 2, renderW, renderH);
+        // Offset image to align with polygon bbox center (not centroid)
+        const off = imgOffsetRef.current;
+        ctx.drawImage(img, off.x - renderW / 2, off.y - renderH / 2, renderW, renderH);
         ctx.restore();
 
         // Debug: fill collision polygon in translucent blue
@@ -259,6 +274,15 @@ function BottlePhysics() {
           ctx.lineWidth = 1.5;
           ctx.stroke();
         }
+
+        // Debug: red dot at the center of mass (body position)
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, 6, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 40, 40, 0.9)';
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
       }
 
       renderLoopRef.current = requestAnimationFrame(loop);
