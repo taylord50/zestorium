@@ -78,13 +78,13 @@ function BottlePhysics() {
     engine.gravity.x = 0;
     engineRef.current = engine;
 
-    // Create bottle body — starts upright, centered horizontally, resting on floor
+    // Create bottle body — starts above screen, falls in
     const vertices = BOTTLE_VERTICES.map(v => ({
       x: v.x * renderW,
       y: v.y * renderH,
     }));
 
-    const bottle = Matter.Bodies.fromVertices(w / 2, h - renderH / 2 - 5, [vertices], {
+    const bottle = Matter.Bodies.fromVertices(w / 2, -renderH, [vertices], {
       restitution: p.restitution,
       friction: p.friction,
       frictionStatic: p.frictionStatic,
@@ -98,13 +98,20 @@ function BottlePhysics() {
       Matter.Composite.add(engine.world, bottle);
     }
 
-    // Walls — trap the bottle
+    // Walls — floor at bottom of wrapper, left/right at screen edges
+    // The canvas maps to the wrapper dimensions, but we want walls at actual screen edges
+    // Screen width in canvas coordinates: screen is wider than wrapper
+    const screenW = window.innerWidth;
+    const wrapperW = w; // canvas/wrapper width
+    const extraSide = ((screenW - wrapperW) / 2) * (w / wrapperW); // extra space in canvas coords
     const wallThickness = 60;
     const walls = [
-      Matter.Bodies.rectangle(w / 2, h + wallThickness / 2, w + 100, wallThickness, { isStatic: true, friction: p.friction, frictionStatic: p.frictionStatic }),
-      Matter.Bodies.rectangle(w / 2, -wallThickness / 2, w + 100, wallThickness, { isStatic: true }),
-      Matter.Bodies.rectangle(-wallThickness / 2, h / 2, wallThickness, h + 100, { isStatic: true }),
-      Matter.Bodies.rectangle(w + wallThickness / 2, h / 2, wallThickness, h + 100, { isStatic: true }),
+      // Floor
+      Matter.Bodies.rectangle(w / 2, h + wallThickness / 2, screenW + 200, wallThickness, { isStatic: true, friction: p.friction, frictionStatic: p.frictionStatic }),
+      // Left wall at screen edge
+      Matter.Bodies.rectangle(-extraSide - wallThickness / 2, h / 2, wallThickness, h * 3, { isStatic: true }),
+      // Right wall at screen edge
+      Matter.Bodies.rectangle(w + extraSide + wallThickness / 2, h / 2, wallThickness, h * 3, { isStatic: true }),
     ];
     Matter.Composite.add(engine.world, walls);
 
@@ -212,11 +219,11 @@ function BottlePhysics() {
         ref={containerRef}
         onTouchStart={() => { if (!gyroEnabledRef.current) enableGyro(); }}
         onClick={() => { if (!gyroEnabledRef.current) enableGyro(); }}
-        style={{ touchAction: 'none' }}
+        style={{ touchAction: 'none', overflow: 'visible' }}
       >
         <canvas
           ref={canvasRef}
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible' }}
         />
       </div>
     </div>
