@@ -9,26 +9,53 @@ import Matter from 'matter-js';
 
 const BOTTLE_IMG = '/bottle-nolabel.png';
 
-// Bottle collision polygon (convex hull approximation)
+// Bottle collision polygon — traced from actual bottle edge pixels
+// Coordinates as fractions from center (-0.5 to 0.5 range)
+// Bottom is flattened for stability
 const BOTTLE_VERTICES = [
-  { x: -0.12, y: -0.50 },
-  { x: 0.12, y: -0.50 },
-  { x: 0.12, y: -0.30 },
-  { x: 0.15, y: -0.25 },
-  { x: 0.30, y: -0.15 },
-  { x: 0.38, y: -0.05 },
-  { x: 0.40, y: 0.05 },
-  { x: 0.40, y: 0.40 },
-  { x: 0.38, y: 0.48 },
-  { x: 0.30, y: 0.50 },
-  { x: -0.30, y: 0.50 },
-  { x: -0.38, y: 0.48 },
-  { x: -0.40, y: 0.40 },
-  { x: -0.40, y: 0.05 },
-  { x: -0.38, y: -0.05 },
-  { x: -0.30, y: -0.15 },
-  { x: -0.15, y: -0.25 },
-  { x: -0.12, y: -0.30 },
+  // Top of neck
+  { x: -0.084, y: -0.44 },
+  { x: 0.063, y: -0.44 },
+  // Neck
+  { x: 0.068, y: -0.40 },
+  { x: 0.078, y: -0.38 },
+  { x: 0.072, y: -0.30 },
+  { x: 0.073, y: -0.23 },
+  // Shoulder transition
+  { x: 0.080, y: -0.18 },
+  { x: 0.169, y: -0.13 },
+  { x: 0.201, y: -0.08 },
+  // Body right
+  { x: 0.204, y: -0.05 },
+  { x: 0.203, y: 0.0 },
+  { x: 0.202, y: 0.10 },
+  { x: 0.203, y: 0.20 },
+  { x: 0.203, y: 0.30 },
+  { x: 0.203, y: 0.37 },
+  // Bottom right corner
+  { x: 0.200, y: 0.39 },
+  // Flat bottom
+  { x: 0.163, y: 0.41 },
+  { x: -0.163, y: 0.41 },
+  // Bottom left corner
+  { x: -0.200, y: 0.39 },
+  // Body left
+  { x: -0.205, y: 0.37 },
+  { x: -0.205, y: 0.30 },
+  { x: -0.207, y: 0.20 },
+  { x: -0.207, y: 0.10 },
+  { x: -0.212, y: 0.0 },
+  { x: -0.211, y: -0.05 },
+  // Shoulder left
+  { x: -0.179, y: -0.08 },
+  { x: -0.148, y: -0.13 },
+  { x: -0.098, y: -0.18 },
+  // Neck left
+  { x: -0.092, y: -0.23 },
+  { x: -0.091, y: -0.30 },
+  { x: -0.088, y: -0.38 },
+  { x: -0.089, y: -0.40 },
+  { x: -0.084, y: -0.44 },
 ];
 
 const DEFAULT_PARAMS = {
@@ -245,7 +272,7 @@ function BottlePhysics() {
         ctx.drawImage(img, -renderW / 2, -renderH / 2, renderW, renderH);
         ctx.restore();
 
-        // Debug: draw collision polygon in light blue
+        // Debug: fill collision polygon in translucent blue
         const vertices = bottle.vertices;
         if (vertices && vertices.length > 0) {
           ctx.beginPath();
@@ -254,8 +281,10 @@ function BottlePhysics() {
             ctx.lineTo(vertices[i].x, vertices[i].y);
           }
           ctx.closePath();
+          ctx.fillStyle = 'rgba(100, 180, 255, 0.3)';
+          ctx.fill();
           ctx.strokeStyle = 'rgba(100, 180, 255, 0.7)';
-          ctx.lineWidth = 2;
+          ctx.lineWidth = 1.5;
           ctx.stroke();
         }
       }
