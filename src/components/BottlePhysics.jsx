@@ -363,7 +363,9 @@ function BottlePhysics() {
   useEffect(() => {
     const { w, h } = dims;
     const p = DEFAULT_PARAMS;
-    const engine = Matter.Engine.create();
+    // enableSleeping: settled bodies freeze completely — kills micro-jitter
+    // that would otherwise keep waking the fluid sim
+    const engine = Matter.Engine.create({ enableSleeping: true });
     engine.gravity.y = p.gravity;
     engine.gravity.x = 0;
     engineRef.current = engine;
@@ -432,6 +434,7 @@ function BottlePhysics() {
   }, [dims]);
 
   // Gyro — tilts gravity only after bottle has landed
+  const lastTiltRef = useRef(0);
   const handleOrientation = useCallback((e) => {
     if (e.gamma === null || !engineRef.current || !landedRef.current) return;
     const p = DEFAULT_PARAMS;
@@ -442,6 +445,14 @@ function BottlePhysics() {
     const gravity = engineRef.current.gravity;
     gravity.x = tiltX * p.gravityScale;
     gravity.y = p.gravity;
+
+    // Sleeping bodies ignore gravity changes — wake the bottle when
+    // the tilt meaningfully changes
+    if (Math.abs(tiltX - lastTiltRef.current) > 0.03) {
+      lastTiltRef.current = tiltX;
+      const b = bottleBodyRef.current;
+      if (b && b.isSleeping) Matter.Sleeping.set(b, false);
+    }
   }, []);
 
   // Enable gyro on touch
